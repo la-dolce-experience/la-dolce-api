@@ -1,0 +1,48 @@
+meta {
+  name: Regravar título do hero (sem alterar)
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/rest/v1/sections?key=eq.hero
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "title": "{{heroTitle}}"
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+
+  if (!bru.getVar('heroTitle')) {
+    throw new Error('Rode "01 Público > Seções da página" antes, para ler o título atual.');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('admin pode gravar e o valor continua o mesmo', function () {
+    expect(res.getBody()).to.have.lengthOf(1);
+    expect(res.getBody()[0].title).to.equal(bru.getVar('heroTitle'));
+  });
+}

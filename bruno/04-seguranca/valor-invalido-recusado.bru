@@ -1,0 +1,39 @@
+meta {
+  name: Admin: banco recusa WhatsApp inválido
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/rest/v1/site_settings?id=eq.1
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "whatsapp_number": "abc"
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+tests {
+  test('recusado pela validação do banco (check constraint)', function () {
+    expect(res.getStatus()).to.equal(400);
+    expect(res.getBody().code).to.equal('23514');
+  });
+}

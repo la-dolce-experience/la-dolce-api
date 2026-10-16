@@ -1,0 +1,41 @@
+meta {
+  name: Redefinir senha
+  type: http
+  seq: 5
+}
+
+put {
+  url: {{baseUrl}}/auth/v1/admin/users/{{newUserId}}
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "password": "{{newUserPassword}}"
+  }
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+
+  if (!bru.getVar('newUserId')) throw new Error('Rode "Criar usuário" antes (ou defina newUserId).');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Define a senha do usuário como o valor atual de `newUserPassword`.
+}

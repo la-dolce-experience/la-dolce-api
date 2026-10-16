@@ -1,0 +1,25 @@
+meta {
+  name: Depoimentos autorizados
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/testimonials?select=*&order=position
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('só depoimentos com autorização de uso', function () {
+    res.getBody().forEach((t) => expect(t.authorized).to.equal(true));
+  });
+}

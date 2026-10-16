@@ -1,0 +1,28 @@
+meta {
+  name: Listar usuários
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/auth/v1/admin/users?per_page=50
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

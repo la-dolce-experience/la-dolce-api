@@ -1,0 +1,47 @@
+meta {
+  name: Criar pergunta de teste (oculta)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/faqs
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "question": "[Teste Bruno] Pergunta de teste",
+    "answer": "Criada pela coleção do Bruno. Pode excluir.",
+    "visible": false,
+    "position": 999
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (Array.isArray(body) && body[0]) bru.setVar('testFaqId', body[0].id);
+}
+
+tests {
+  test('status 201', function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

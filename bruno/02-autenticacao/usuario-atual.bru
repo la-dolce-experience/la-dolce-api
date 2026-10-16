@@ -1,0 +1,35 @@
+meta {
+  name: Usuário logado
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/auth/v1/user
+  body: none
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('é o usuário do login', function () {
+    expect(res.getBody().id).to.equal(bru.getVar('userId'));
+  });
+}

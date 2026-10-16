@@ -1,0 +1,38 @@
+meta {
+  name: Tornar administrador
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/admin_users
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+body:json {
+  {
+    "user_id": "{{newUserId}}"
+  }
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+
+  if (!bru.getVar('newUserId')) throw new Error('Rode "Criar usuário" antes (ou defina newUserId).');
+}
+
+tests {
+  test('status 201', function () {
+    expect(res.getStatus()).to.equal(201);
+  });
+}

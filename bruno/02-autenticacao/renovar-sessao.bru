@@ -1,0 +1,42 @@
+meta {
+  name: Renovar sessão
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/v1/token?grant_type=refresh_token
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refresh_token": "{{refreshToken}}"
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.access_token) {
+    bru.setVar('accessToken', body.access_token);
+    bru.setVar('refreshToken', body.refresh_token);
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

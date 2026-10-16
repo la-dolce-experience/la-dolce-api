@@ -1,0 +1,40 @@
+meta {
+  name: É administrador?
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/rpc/is_admin
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('usuário é administrador do painel', function () {
+    expect(res.getBody()).to.equal(true);
+  });
+}

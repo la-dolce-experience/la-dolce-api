@@ -1,0 +1,34 @@
+meta {
+  name: Excluir usuário
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/auth/v1/admin/users/{{newUserId}}
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+
+  if (!bru.getVar('newUserId')) throw new Error('Rode "Criar usuário" antes (ou defina newUserId).');
+}
+
+script:post-response {
+  if (res.getStatus() === 200) bru.setVar('newUserId', '');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

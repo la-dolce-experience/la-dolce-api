@@ -1,0 +1,45 @@
+meta {
+  name: Editar pergunta de teste
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/rest/v1/faqs?id=eq.{{testFaqId}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "answer": "Editada pela coleção do Bruno."
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+
+  if (!bru.getVar('testFaqId')) throw new Error('Rode "Criar pergunta de teste" antes.');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('resposta atualizada', function () {
+    expect(res.getBody()[0].answer).to.equal('Editada pela coleção do Bruno.');
+  });
+}

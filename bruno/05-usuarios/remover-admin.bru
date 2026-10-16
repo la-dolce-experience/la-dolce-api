@@ -1,0 +1,31 @@
+meta {
+  name: Remover administrador
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/rest/v1/admin_users?user_id=eq.{{newUserId}}
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+  Prefer: return=representation
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+
+  if (!bru.getVar('newUserId')) throw new Error('Rode "Criar usuário" antes (ou defina newUserId).');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}

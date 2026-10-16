@@ -1,0 +1,30 @@
+meta {
+  name: Visitante não cria pergunta
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/faqs
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "question": "Spam?",
+    "answer": "Spam"
+  }
+}
+
+tests {
+  test('recusado pela política de segurança (RLS)', function () {
+    expect(res.getStatus()).to.equal(401);
+    expect(res.getBody().code).to.equal('42501');
+  });
+}

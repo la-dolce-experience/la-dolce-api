@@ -1,0 +1,42 @@
+meta {
+  name: Excluir pergunta de teste
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/rest/v1/faqs?id=eq.{{testFaqId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Prefer: return=representation
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+
+  if (!bru.getVar('testFaqId')) throw new Error('Rode "Criar pergunta de teste" antes.');
+}
+
+script:post-response {
+  bru.setVar('testFaqId', '');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('uma pergunta excluída', function () {
+    expect(res.getBody()).to.have.lengthOf(1);
+  });
+}

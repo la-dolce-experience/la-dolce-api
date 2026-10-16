@@ -1,0 +1,30 @@
+meta {
+  name: Seções da página
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/sections?select=*&order=key
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+script:post-response {
+  const hero = (res.getBody() || []).find((s) => s.key === 'hero');
+  if (hero) bru.setVar('heroTitle', hero.title);
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('seção hero presente', function () {
+    expect(res.getBody().map((s) => s.key)).to.include('hero');
+  });
+}

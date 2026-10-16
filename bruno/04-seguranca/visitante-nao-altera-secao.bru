@@ -1,0 +1,30 @@
+meta {
+  name: Visitante não altera seção
+  type: http
+  seq: 1
+}
+
+patch {
+  url: {{baseUrl}}/rest/v1/sections?key=eq.hero
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+  Prefer: return=representation
+}
+
+body:json {
+  {
+    "title": "ALTERAÇÃO NÃO AUTORIZADA"
+  }
+}
+
+tests {
+  test('nenhuma linha alterada', function () {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody()).to.have.lengthOf(0);
+  });
+}

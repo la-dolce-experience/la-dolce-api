@@ -1,0 +1,27 @@
+meta {
+  name: Configurações do site
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/site_settings?select=*
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+  test('uma única linha de configuração', function () {
+    expect(res.getBody()).to.have.lengthOf(1);
+  });
+  test('WhatsApp só com dígitos (55 + DDD + número)', function () {
+    expect(res.getBody()[0].whatsapp_number).to.match(/^55\d{10,11}$/);
+  });
+}

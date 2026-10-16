@@ -1,0 +1,57 @@
+meta {
+  name: Criar usuário
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/v1/admin/users
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{serviceRoleKey}}
+  Authorization: Bearer {{serviceRoleKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{newUserEmail}}",
+    "password": "{{newUserPassword}}",
+    "email_confirm": true
+  }
+}
+
+script:pre-request {
+  if (!bru.getEnvVar('serviceRoleKey')) {
+    throw new Error('Defina serviceRoleKey no ambiente (secreta). Ela ignora as regras de segurança: use com cuidado.');
+  }
+
+  if (!bru.getEnvVar('newUserEmail') || !bru.getEnvVar('newUserPassword')) {
+    throw new Error('Defina newUserEmail e newUserPassword no ambiente.');
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.id) bru.setVar('newUserId', body.id);
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('usuário criado com e-mail confirmado', function () {
+    expect(res.getBody().email).to.equal(bru.getEnvVar('newUserEmail').toLowerCase());
+    expect(res.getBody().email_confirmed_at).to.be.a('string');
+  });
+}
+
+docs {
+  Cria o usuário já confirmado (sem e-mail de confirmação). Ele **ainda não** é administrador:
+  rode "Tornar administrador" em seguida. Para o administrador definitivo do cliente, prefira
+  `npm run admin:create`, que gera uma senha forte.
+}

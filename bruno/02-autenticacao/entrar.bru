@@ -1,0 +1,42 @@
+meta {
+  name: Entrar
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/auth/v1/token?grant_type=password
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "{{adminEmail}}",
+    "password": "{{adminPassword}}"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.access_token) {
+    bru.setVar('accessToken', body.access_token);
+    bru.setVar('refreshToken', body.refresh_token);
+    bru.setVar('userId', body.user.id);
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('recebe o token de acesso', function () {
+    expect(res.getBody().access_token).to.be.a('string');
+  });
+}

@@ -38,6 +38,7 @@ scripts/
   create-admin.mjs      Cria ou promove um administrador do painel
   check-secrets.mjs     Procura chaves e arquivos .env versionados por engano
 tests/integration/      Testes de RLS, permissões e Storage
+bruno/                  Coleção do Bruno: endpoints do site e do painel, segurança e gestão de usuários
 ```
 
 ## Rodando localmente
@@ -68,6 +69,10 @@ Serviços locais:
 | `npm run admin:create -- --email x@y.com` | Cria ou promove um administrador (mostra uma senha temporária) |
 | `npm run test:integration` | Testes de segurança contra o banco local |
 | `npm run check` | Formatação, tipos e verificação de segredos |
+
+## Testar a API no Bruno
+
+A pasta [`bruno/`](bruno) é uma coleção do [Bruno](https://www.usebruno.com) com os endpoints usados pelo site e pelo painel, verificações de segurança e a **criação de usuários administradores**. Ambientes **Local** e **Homologacao**; as chaves ficam em variáveis secretas, fora do Git. Instruções em [bruno/README.md](bruno/README.md).
 
 ## Nova migration
 

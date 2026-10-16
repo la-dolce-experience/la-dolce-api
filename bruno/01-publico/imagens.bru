@@ -1,0 +1,21 @@
+meta {
+  name: Imagens cadastradas
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/media?select=id,src_lg,src_sm,alt&order=created_at.desc
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
