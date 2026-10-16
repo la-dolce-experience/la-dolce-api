@@ -1,0 +1,34 @@
+{
+  "name": "la-dolce-api",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status -o env",
+    "db:types": "supabase gen types typescript --local > types/database.ts",
+    "admin:create": "node --env-file-if-exists=.env.local scripts/create-admin.mjs",
+    "test:integration": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "secrets:check": "node scripts/check-secrets.mjs",
+    "check": "npm run format:check && npm run typecheck && npm run secrets:check"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.118.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "prettier": "^3.9.10",
+    "supabase": "^2.121.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

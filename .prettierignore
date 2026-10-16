@@ -1,0 +1,4 @@
+node_modules
+supabase/.temp
+types/database.ts
+*.md
