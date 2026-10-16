@@ -13,12 +13,14 @@
     "db:status": "supabase status -o env",
     "db:types": "supabase gen types typescript --local > types/database.ts",
     "admin:create": "node --env-file-if-exists=.env.local scripts/create-admin.mjs",
-    "test:integration": "vitest run",
+    "test:integration": "vitest run tests/integration",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "secrets:check": "node scripts/check-secrets.mjs",
-    "check": "npm run format:check && npm run typecheck && npm run secrets:check"
+    "check": "npm run format:check && npm run typecheck && npm test && npm run secrets:check",
+    "test": "vitest run tests/functions",
+    "functions:deploy": "supabase functions deploy republicar-site"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.118.0"

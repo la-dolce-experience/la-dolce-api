@@ -14,6 +14,7 @@ Requisições para testar a API do Supabase usada pelo site e pelo painel, e par
 | `adminEmail` / `adminPassword` | Um administrador do painel | 02, 03 e 04 |
 | `serviceRoleKey` | Local: `npm run db:status` (`SERVICE_ROLE_KEY`). Homologação: Supabase → API Keys → `service_role` | 05 |
 | `newUserEmail` / `newUserPassword` | O usuário que você quer criar | 05 |
+| `confirmarRepublicacao` (não secreta) | Já vem `nao`. Troque para `sim` só quando quiser acionar um deploy | 06 |
 
 `baseUrl` e `siteUrl` já vêm preenchidas em cada ambiente.
 
@@ -25,12 +26,15 @@ Requisições para testar a API do Supabase usada pelo site e pelo painel, e par
 |---|---|---|
 | **01 Público** | Lê o conteúdo como um visitante (o que o site faz) | `anonKey` |
 | **02 Autenticação** | Entrar, usuário logado, verificar se é administrador, renovar sessão | `adminEmail`, `adminPassword` |
-| **03 Painel (admin)** | Grava como o painel: regrava o título do hero com o mesmo valor; cria, edita e apaga uma **pergunta de teste oculta**; lista imagens enviadas | Login (02) |
-| **04 Segurança** | Confirma que o banco **recusa** escrita de visitantes e dados inválidos | Login (02) para o último item |
+| **03 Painel (admin)** | Grava como o painel: regrava o título do hero com o mesmo valor; cria, edita e apaga uma **pergunta de teste oculta** (e a tira da lixeira); lista imagens enviadas, resultados do site, lixeira e o último pedido de republicação | Login (02) |
+| **04 Segurança** | Confirma que o banco **recusa** escrita de visitantes e dados inválidos, e que visitantes não leem estatísticas nem a lixeira | Login (02) para o item do WhatsApp inválido |
 | **05 Usuários** | Listar, criar usuário, tornar ou remover administrador, redefinir senha, excluir | `serviceRoleKey` |
-| **06 Encerrar sessão** | Sai (invalida a sessão aberta em 02) | Login (02) |
+| **06 Republicar site** | Chama a função `republicar-site` (novo deploy na Vercel para atualizar a prévia do link). **Pulada** a menos que `confirmarRepublicacao` seja `sim` | Login (02) |
+| **07 Encerrar sessão** | Sai (invalida a sessão aberta em 02) | Login (02) |
 
-As pastas 03 e 04 **não alteram o conteúdo real**: a pergunta de teste é criada oculta e apagada em seguida.
+As pastas 03 e 04 **não alteram o conteúdo real**: a pergunta de teste é criada oculta, apagada e retirada da lixeira em seguida.
+
+> **Atenção:** a pasta 06, com `confirmarRepublicacao = sim`, aciona um deploy real na Vercel (no máximo um a cada 5 minutos).
 
 ## Criar um usuário administrador
 

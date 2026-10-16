@@ -37,6 +37,20 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"deploy_requests": {
+                  Row: {
+                    "detail": string,"id": number,"ok": boolean,"requested_at": string,"requested_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "detail"?: string,"id"?: never,"ok": boolean,"requested_at"?: string,"requested_by"?: string | null
+                  }
+                  Update: {
+                    "detail"?: string,"id"?: never,"ok"?: boolean,"requested_at"?: string,"requested_by"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"event_types": {
                   Row: {
                     "description": string,"form_label": string,"id": string,"position": number,"title": string,"visible": boolean
@@ -133,6 +147,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"site_events": {
+                  Row: {
+                    "created_at": string,"id": number,"kind": string,"source": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: never,"kind": string,"source"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: never,"kind"?: string,"source"?: string | null
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"site_settings": {
                   Row: {
                     "address_district": string,"address_street": string,"business_name": string,"city": string,"email": string,"facebook_url": string,"footer_tagline": string,"id": number,"instagram_url": string,"logo_media_id": string | null,"maps_url": string,"og_media_id": string | null,"opening_hours": string,"phone": string,"postal_code": string,"seo_description": string,"seo_title": string,"service_area": string,"show_map": boolean,"state": string,"tiktok_url": string,"updated_at": string,"whatsapp_greeting": string,"whatsapp_number": string
@@ -187,17 +215,42 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"trash": {
+                  Row: {
+                    "deleted_at": string,"deleted_by": string | null,"id": string,"label": string,"row_data": NonNullable<Json>,"table_name": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "deleted_at"?: string,"deleted_by"?: string | null,"id"?: string,"label"?: string,"row_data": NonNullable<Json>,"table_name": string
+                  }
+                  Update: {
+                    "deleted_at"?: string,"deleted_by"?: string | null,"id"?: string,"label"?: string,"row_data"?: NonNullable<Json>,"table_name"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
             [_ in never]: never
           }
           Functions: {
-            "is_admin":
+            "events_summary":
+{ Args: { "p_days"?: number }; Returns: {
+              "day": string,"kind": string,"source": string,"total": number
+            }[]
+                           },
+"is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "is_safe_url":
 { Args: { "value": string }; Returns: boolean
+                           },
+"restore_from_trash":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
+"track_event":
+{ Args: { "p_kind": string,"p_source"?: string }; Returns: undefined
                            }
           }
           Enums: {

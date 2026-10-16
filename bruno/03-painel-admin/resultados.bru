@@ -1,0 +1,46 @@
+meta {
+  name: Resultados do site (30 dias)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/rpc/events_summary
+  body: json
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "p_days": 30
+  }
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('lista de dias, tipos e totais', function () {
+    expect(res.getBody()).to.be.an('array');
+  });
+}
+
+docs {
+  Visitas e cliques no WhatsApp por dia e origem, como no painel da Visão geral.
+}

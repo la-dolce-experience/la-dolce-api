@@ -1,0 +1,39 @@
+meta {
+  name: Republicar site
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/functions/v1/republicar-site
+  body: none
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+
+  if (bru.getEnvVar('confirmarRepublicacao') !== 'sim') {
+    if (bru.runner && bru.runner.skipRequest) {
+      bru.runner.skipRequest();
+    } else {
+      throw new Error('Defina confirmarRepublicacao = sim no ambiente para acionar um deploy.');
+    }
+  }
+}
+
+tests {
+  test('pedido aceito, adiado ou não configurado', function () {
+    expect([202, 429, 503]).to.include(res.getStatus());
+  });
+}

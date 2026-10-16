@@ -9,7 +9,8 @@
     "noEmit": true,
     "strict": true,
     "noUnusedLocals": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "allowImportingTsExtensions": true
   },
-  "include": ["tests", "types", "vitest.config.ts"]
+  "include": ["tests", "types", "vitest.config.ts", "supabase/functions/**/handler.ts"]
 }

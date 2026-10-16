@@ -1,0 +1,46 @@
+meta {
+  name: Tirar a pergunta de teste da lixeira
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/rest/v1/trash?row_data->>id=eq.{{testFaqId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+  Prefer: return=representation
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+
+  if (!bru.getVar('testFaqId')) throw new Error('Rode "Criar pergunta de teste" antes.');
+}
+
+script:post-response {
+  bru.setVar('testFaqId', '');
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test('a cópia na lixeira foi removida', function () {
+    expect(res.getBody()).to.have.lengthOf(1);
+  });
+}
+
+docs {
+  Excluir manda o item para a lixeira; esta requisição apaga a cópia para não deixar a pergunta de teste lá.
+}

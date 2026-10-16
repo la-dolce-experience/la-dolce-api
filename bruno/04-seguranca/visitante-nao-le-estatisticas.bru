@@ -1,0 +1,28 @@
+meta {
+  name: Visitante não lê estatísticas
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/rest/v1/rpc/events_summary
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{anonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "p_days": 30
+  }
+}
+
+tests {
+  test('resumo recusado para visitantes', function () {
+    expect([401, 403, 404]).to.include(res.getStatus());
+  });
+}

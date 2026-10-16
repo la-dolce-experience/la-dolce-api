@@ -32,7 +32,9 @@ Clone os quatro **lado a lado** na mesma pasta: o `supabase/config.toml` carrega
 ```
 supabase/
   config.toml           Configuração do Supabase local (Auth, Storage, caminho do seed)
-  migrations/           Schema versionado: tabelas, RLS, bucket de imagens
+  migrations/           Schema versionado: tabelas, RLS, bucket de imagens, métricas, lixeira
+  functions/
+    republicar-site/    Edge Function que republica o site na Vercel (botão "Atualizar prévia do link")
 types/database.ts       Tipos TypeScript gerados a partir do schema (copiados para o la-dolce-app)
 scripts/
   create-admin.mjs      Cria ou promove um administrador do painel
@@ -67,12 +69,30 @@ Serviços locais:
 | `npm run db:status` | Mostra URLs e chaves do ambiente local |
 | `npm run db:types` | Regera `types/database.ts` a partir do banco local |
 | `npm run admin:create -- --email x@y.com` | Cria ou promove um administrador (mostra uma senha temporária) |
+| `npm test` | Testes da lógica das Edge Functions (sem banco) |
 | `npm run test:integration` | Testes de segurança contra o banco local |
-| `npm run check` | Formatação, tipos e verificação de segredos |
+| `npm run functions:deploy` | Publica a Edge Function `republicar-site` no projeto vinculado |
+| `npm run check` | Formatação, tipos, testes das funções e verificação de segredos |
 
 ## Testar a API no Bruno
 
 A pasta [`bruno/`](bruno) é uma coleção do [Bruno](https://www.usebruno.com) com os endpoints usados pelo site e pelo painel, verificações de segurança e a **criação de usuários administradores**. Ambientes **Local** e **Homologacao**; as chaves ficam em variáveis secretas, fora do Git. Instruções em [bruno/README.md](bruno/README.md).
+
+## Edge Function `republicar-site`
+
+Chamada pelo painel para republicar o site e atualizar a prévia do link. Só administradores, no máximo uma vez a cada 5 minutos; cada pedido fica em `deploy_requests`.
+
+| Secret | Valor |
+|---|---|
+| `VERCEL_DEPLOY_HOOK_URL` | Vercel → Settings → Git → Deploy Hooks (branch `main`). Dispara deploys: **não versionar** |
+| `SITE_ORIGINS` | Origens do site, separadas por vírgula (CORS). Ex.: `https://la-dolce-app.vercel.app` |
+
+```bash
+npm run functions:deploy
+npx supabase secrets set VERCEL_DEPLOY_HOOK_URL=<url> SITE_ORIGINS=<origens>
+```
+
+Localmente, a função roda com `npm run db:start` e lê os secrets de `supabase/functions/.env` (no `.gitignore`).
 
 ## Nova migration
 
@@ -98,7 +118,7 @@ O seed de produção e as configurações do painel do Supabase estão no guia `
 
 | Job | Verifica |
 |---|---|
-| **Migrations, seed, RLS e tipos** | Formatação e tipos; sobe o Supabase com o seed do `la-dolce-data`; confere se `types/database.ts` bate com as migrations; roda os testes de segurança |
+| **Migrations, seed, RLS e tipos** | Formatação, tipos e testes das funções; sobe o Supabase com o seed do `la-dolce-data`; confere se `types/database.ts` bate com as migrations; roda os testes de segurança |
 | **Segredos e dependências** | Gitleaks em todo o histórico, arquivos `.env` e chaves versionados, `npm audit` |
 
 O primeiro job baixa o `la-dolce-data` e precisa do secret **`LA_DOLCE_REPOS_TOKEN`** (veja abaixo). Nenhuma chave do Supabase de produção vai para o GitHub.

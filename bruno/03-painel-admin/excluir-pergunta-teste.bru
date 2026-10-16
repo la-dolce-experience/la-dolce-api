@@ -27,10 +27,6 @@ script:pre-request {
   if (!bru.getVar('testFaqId')) throw new Error('Rode "Criar pergunta de teste" antes.');
 }
 
-script:post-response {
-  bru.setVar('testFaqId', '');
-}
-
 tests {
   test('status 200', function () {
     expect(res.getStatus()).to.equal(200);

@@ -64,6 +64,8 @@ for (const file of tracked) {
     problems.push(`${file}: arquivo .env versionado`);
   // O próprio verificador contém os padrões que procura.
   if (file === 'scripts/check-secrets.mjs') continue;
+  // Arquivo versionado mas apagado ou renomeado na pasta de trabalho: não há o que ler.
+  if (!existsSync(file)) continue;
   scan(file);
 }
 

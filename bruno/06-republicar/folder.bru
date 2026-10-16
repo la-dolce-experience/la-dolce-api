@@ -1,0 +1,12 @@
+meta {
+  name: 06 Republicar site (aciona deploy)
+  seq: 6
+}
+
+docs {
+  Chama a Edge Function `republicar-site`, que pede um novo deploy à Vercel para atualizar a prévia do link
+  (WhatsApp, redes sociais). **Aciona um deploy real** quando o Deploy Hook está configurado.
+
+  Por segurança, só roda com `confirmarRepublicacao` = `sim` no ambiente. Respostas esperadas:
+  202 (iniciado), 429 (aguarde, há um pedido recente), 503 (Deploy Hook não configurado).
+}

@@ -1,0 +1,35 @@
+meta {
+  name: Lixeira
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/rest/v1/trash?select=id,table_name,label,deleted_at&order=deleted_at.desc
+  body: none
+  auth: bearer
+}
+
+headers {
+  apikey: {{anonKey}}
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:pre-request {
+  if (!bru.getVar('accessToken')) {
+    throw new Error('Faça o login primeiro: rode "02 Autenticação > Entrar".');
+  }
+}
+
+tests {
+  test('status 200', function () {
+    expect(res.getStatus()).to.equal(200);
+  });
+}
+
+docs {
+  Itens excluídos nos últimos 30 dias. Para restaurar: POST rpc/restore_from_trash com {"p_id": "<id>"}.
+}

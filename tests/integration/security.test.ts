@@ -165,3 +165,75 @@ describe('administrador', () => {
     expect(removed.data).toHaveLength(1);
   });
 });
+
+describe('métricas de visitas e cliques', () => {
+  it('visitante registra eventos, mas não lê a tabela nem o resumo', async () => {
+    expect((await anon.rpc('track_event', { p_kind: 'visit' })).error).toBeNull();
+    expect((await anon.rpc('track_event', { p_kind: 'whatsapp_click', p_source: 'botao_flutuante' })).error).toBeNull();
+    expect((await anon.from('site_events').select('*')).data ?? []).toEqual([]);
+    expect((await anon.rpc('events_summary', { p_days: 30 })).error).not.toBeNull();
+    expect((await editor.rpc('events_summary', { p_days: 30 })).error?.code).toBe('42501');
+  });
+
+  it('o banco recusa tipos e origens inválidos', async () => {
+    expect((await anon.rpc('track_event', { p_kind: 'compra' })).error?.code).toBe('23514');
+    expect((await anon.rpc('track_event', { p_kind: 'visit', p_source: '<script>' })).error?.code).toBe('23514');
+  });
+
+  it('admin vê o resumo por dia, tipo e origem', async () => {
+    const { data, error } = await admin.rpc('events_summary', { p_days: 30 });
+    expect(error).toBeNull();
+    const clicks = data!.filter((r) => r.kind === 'whatsapp_click' && r.source === 'botao_flutuante');
+    expect(clicks.reduce((sum, r) => sum + Number(r.total), 0)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('lixeira', () => {
+  it('item excluído vai para a lixeira e pode ser restaurado', async () => {
+    const { data: faq } = await admin
+      .from('faqs')
+      .insert({ question: `Lixeira ${stamp}?`, answer: 'Teste', visible: false })
+      .select()
+      .single();
+    expect((await admin.from('faqs').delete().eq('id', faq!.id)).error).toBeNull();
+
+    const { data: trashed } = await admin.from('trash').select('*').eq('row_data->>id', faq!.id).single();
+    expect(trashed!.table_name).toBe('faqs');
+    expect(trashed!.label).toBe(`Lixeira ${stamp}?`);
+
+    expect((await admin.rpc('restore_from_trash', { p_id: trashed!.id })).error).toBeNull();
+    const { data: restored } = await admin.from('faqs').select('*').eq('id', faq!.id).single();
+    expect(restored!.question).toBe(`Lixeira ${stamp}?`);
+    expect((await admin.from('trash').select('id').eq('id', trashed!.id)).data).toEqual([]);
+
+    await service.from('faqs').delete().eq('id', faq!.id);
+    await service.from('trash').delete().eq('row_data->>id', faq!.id);
+  });
+
+  it('visitante e usuário sem permissão não veem nem restauram a lixeira', async () => {
+    const { data: faq } = await service
+      .from('faqs')
+      .insert({ question: `Lixeira 2 ${stamp}?`, answer: 'Teste', visible: false })
+      .select()
+      .single();
+    await service.from('faqs').delete().eq('id', faq!.id);
+    const { data: trashed } = await service.from('trash').select('id').eq('row_data->>id', faq!.id).single();
+
+    for (const client of [anon, editor]) {
+      expect((await client.from('trash').select('*')).data ?? []).toEqual([]);
+      expect((await client.rpc('restore_from_trash', { p_id: trashed!.id })).error).not.toBeNull();
+    }
+    expect((await service.from('faqs').select('id').eq('id', faq!.id)).data).toEqual([]);
+    await service.from('trash').delete().eq('id', trashed!.id);
+  });
+});
+
+describe('pedidos de republicação do site', () => {
+  it('só administradores leem; ninguém grava pela API', async () => {
+    expect((await anon.from('deploy_requests').select('*')).data ?? []).toEqual([]);
+    expect((await editor.from('deploy_requests').select('*')).data ?? []).toEqual([]);
+    expect((await admin.from('deploy_requests').select('*')).error).toBeNull();
+    const insert = await admin.from('deploy_requests').insert({ ok: true });
+    expect(insert.error?.code).toBe('42501');
+  });
+});
