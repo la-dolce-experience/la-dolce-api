@@ -23,7 +23,7 @@ Clone os quatro **lado a lado** na mesma pasta: o `supabase/config.toml` carrega
 | Supabase — Auth | Login por e-mail e senha; cadastro público desabilitado |
 | Supabase — Storage | Bucket `media` (WebP/JPEG até 5 MB), escrita só para administradores |
 | [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) | Banco local no Docker, migrations e geração de tipos |
-| [supabase-js](https://supabase.com/docs/reference/javascript) + Node.js | Script de criação de administrador |
+| [supabase-js](https://supabase.com/docs/reference/javascript) + Node.js | Scripts de criação de administrador e de restauração da cópia de segurança |
 | [Vitest](https://vitest.dev) | Testes de integração de segurança contra o banco local |
 | TypeScript, Prettier | Tipagem dos testes e formatação |
 
@@ -38,6 +38,7 @@ supabase/
 types/database.ts       Tipos TypeScript gerados a partir do schema (copiados para o la-dolce-app)
 scripts/
   create-admin.mjs      Cria ou promove um administrador do painel
+  restore-backup.mjs    Volta o conteúdo para uma cópia baixada no painel
   check-secrets.mjs     Procura chaves e arquivos .env versionados por engano
 tests/integration/      Testes de RLS, permissões e Storage
 bruno/                  Coleção do Bruno: endpoints do site e do painel, segurança e gestão de usuários
@@ -69,6 +70,7 @@ Serviços locais:
 | `npm run db:status` | Mostra URLs e chaves do ambiente local |
 | `npm run db:types` | Regera `types/database.ts` a partir do banco local |
 | `npm run admin:create -- --email x@y.com` | Cria ou promove um administrador (mostra uma senha temporária) |
+| `npm run backup:restore -- --file x.json` | Confere uma cópia baixada no painel e mostra o que muda; com `--confirm`, restaura |
 | `npm test` | Testes da lógica das Edge Functions (sem banco) |
 | `npm run test:integration` | Testes de segurança contra o banco local |
 | `npm run functions:deploy` | Publica a Edge Function `republicar-site` no projeto vinculado |
@@ -93,6 +95,24 @@ npx supabase secrets set VERCEL_DEPLOY_HOOK_URL=<url> SITE_ORIGINS=<origens>
 ```
 
 Localmente, a função roda com `npm run db:start` e lê os secrets de `supabase/functions/.env` (no `.gitignore`).
+
+## Restaurar uma cópia de segurança
+
+Só para o arquivo baixado no painel em **Lixeira e backup → Baixar cópia do conteúdo** (`la-dolce-conteudo-AAAA-MM-DD.json`, formato `la-dolce-backup`, versão 1). Qualquer outro arquivo é recusado.
+
+```bash
+npm run backup:restore -- --file ~/Downloads/la-dolce-conteudo-2026-10-17.json            # só confere e compara
+npm run backup:restore -- --file ~/Downloads/la-dolce-conteudo-2026-10-17.json --confirm  # restaura
+```
+
+- O projeto restaurado é o do `SUPABASE_URL` no `.env.local`, que o script mostra antes. Para produção, use a URL e a secret key de produção.
+- Antes de restaurar, o conteúdo atual é salvo ao lado do arquivo (`la-dolce-conteudo-antes-da-restauracao-*.json`). Para desfazer, restaure esse arquivo.
+- A restauração roda numa transação (função `restore_backup`, só com a service_role): se algo falhar, nada muda.
+- Configurações, seções, listas e referências das imagens voltam com os mesmos ids. Itens das listas que não estavam na cópia vão para a Lixeira do painel (30 dias). Imagens enviadas depois da cópia continuam na biblioteca.
+- Os arquivos de imagem não fazem parte da cópia. Se algum foi apagado do Storage, o script avisa antes, e a foto precisa ser trocada no painel.
+- Depois, peça no painel **Atualizar prévia do link**.
+
+Como funciona e passo a passo completo: `la-dolce-docs/restaurar-copia-de-seguranca.md`.
 
 ## Nova migration
 
