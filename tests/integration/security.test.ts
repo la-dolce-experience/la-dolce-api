@@ -4,7 +4,7 @@
  * Executar: npm run db:start && npm run test:integration
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '../../types/database';
+import type { Database, Json } from '../../types/database';
 
 const url = process.env.SUPABASE_URL!;
 const anonKey = process.env.SUPABASE_ANON_KEY!;
@@ -225,6 +225,74 @@ describe('lixeira', () => {
     }
     expect((await service.from('faqs').select('id').eq('id', faq!.id)).data).toEqual([]);
     await service.from('trash').delete().eq('id', trashed!.id);
+  });
+});
+
+describe('restauração da cópia de segurança', () => {
+  const tables = [
+    'site_settings',
+    'sections',
+    'event_types',
+    'features',
+    'flavor_items',
+    'steps',
+    'gallery_items',
+    'faqs',
+    'testimonials',
+    'media',
+  ] as const;
+
+  async function panelBackup() {
+    const dados: Record<string, Json[]> = {};
+    for (const t of tables) dados[t] = (await service.from(t).select('*')).data as Json[];
+    return { formato: 'la-dolce-backup', versao: 1, geradoEm: new Date().toISOString(), observacao: '', dados };
+  }
+
+  it('só a service_role restaura; admin, usuário sem permissão e visitante não', async () => {
+    const backup = await panelBackup();
+    for (const client of [anon, editor, admin]) {
+      const { error } = await client.rpc('restore_backup', { p_backup: backup });
+      expect(error).not.toBeNull();
+    }
+  });
+
+  it('recusa arquivos que não são a cópia baixada no painel', async () => {
+    const backup = await panelBackup();
+    for (const p_backup of [
+      { ...backup, formato: 'outro' },
+      { ...backup, versao: 2 },
+      { ...backup, dados: {} },
+    ]) {
+      const { error } = await service.rpc('restore_backup', { p_backup });
+      expect(error?.code).toBe('22023');
+    }
+  });
+
+  it('volta o conteúdo para a cópia; o que não estava nela vai para a lixeira', async () => {
+    const backup = await panelBackup();
+    const { data: settings } = await service.from('site_settings').select('business_name').single();
+    await service
+      .from('site_settings')
+      .update({ business_name: `Alterado ${stamp}` })
+      .eq('id', 1);
+    const { data: faq } = await service
+      .from('faqs')
+      .insert({ question: `Depois da cópia ${stamp}?`, answer: 'Teste', visible: false })
+      .select()
+      .single();
+
+    const trashBefore = new Set((await service.from('trash').select('id')).data!.map((r) => r.id));
+
+    const { error } = await service.rpc('restore_backup', { p_backup: backup });
+    expect(error).toBeNull();
+    expect((await service.from('site_settings').select('business_name').single()).data).toEqual(settings);
+    expect((await service.from('faqs').select('id').eq('id', faq!.id)).data).toEqual([]);
+
+    // Os itens que a cópia trouxe de volta não ficam duplicados na lixeira.
+    const { data: trash } = await service.from('trash').select('id, row_data');
+    const added = trash!.filter((r) => !trashBefore.has(r.id));
+    expect(added.map((r) => (r.row_data as { id: string }).id)).toEqual([faq!.id]);
+    await service.from('trash').delete().eq('id', added[0].id);
   });
 });
 

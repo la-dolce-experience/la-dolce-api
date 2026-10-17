@@ -93,6 +93,26 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"flavor_items": {
+                  Row: {
+                    "alt": string,"description": string,"id": string,"kind": string,"media_id": string | null,"position": number,"title": string,"visible": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "alt"?: string,"description"?: string,"id"?: string,"kind": string,"media_id"?: string | null,"position"?: number,"title": string,"visible"?: boolean
+                  }
+                  Update: {
+                    "alt"?: string,"description"?: string,"id"?: string,"kind"?: string,"media_id"?: string | null,"position"?: number,"title"?: string,"visible"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "flavor_items_media_id_fkey"
+      columns: ["media_id"]
+isOneToOne: false
+      referencedRelation: "media"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"gallery_items": {
                   Row: {
                     "alt": string,"caption": string,"id": string,"media_id": string,"position": number,"visible": boolean
@@ -203,17 +223,23 @@ isOneToOne: false
                   ]
                 },"testimonials": {
                   Row: {
-                    "author": string,"authorized": boolean,"context": string,"id": string,"position": number,"quote": string,"visible": boolean
+                    "author": string,"authorized": boolean,"context": string,"id": string,"media_id": string | null,"position": number,"quote": string,"rating": number,"visible": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "author": string,"authorized"?: boolean,"context"?: string,"id"?: string,"position"?: number,"quote": string,"visible"?: boolean
+                    "author": string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"position"?: number,"quote": string,"rating"?: number,"visible"?: boolean
                   }
                   Update: {
-                    "author"?: string,"authorized"?: boolean,"context"?: string,"id"?: string,"position"?: number,"quote"?: string,"visible"?: boolean
+                    "author"?: string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"position"?: number,"quote"?: string,"rating"?: number,"visible"?: boolean
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "testimonials_media_id_fkey"
+      columns: ["media_id"]
+isOneToOne: false
+      referencedRelation: "media"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"trash": {
                   Row: {
@@ -245,6 +271,9 @@ isOneToOne: false
                            },
 "is_safe_url":
 { Args: { "value": string }; Returns: boolean
+                           },
+"restore_backup":
+{ Args: { "p_backup": Json }; Returns: Json
                            },
 "restore_from_trash":
 { Args: { "p_id": string }; Returns: undefined
