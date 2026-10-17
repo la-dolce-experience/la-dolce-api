@@ -305,3 +305,46 @@ describe('pedidos de republicação do site', () => {
     expect(insert.error?.code).toBe('42501');
   });
 });
+
+describe('fotos do evento nos depoimentos', () => {
+  const station = '00000000-0000-4000-a000-000000000001';
+
+  it('aceita até 5 fotos da biblioteca; recusa mais que isso e fotos inexistentes', async () => {
+    const ok = await admin
+      .from('testimonials')
+      .insert({ author: 'Teste fotos', quote: 'x', photo_media_ids: [station, station] })
+      .select()
+      .single();
+    expect(ok.error).toBeNull();
+    createdTestimonials.push(ok.data!.id);
+    expect(ok.data!.photo_media_ids).toEqual([station, station]);
+
+    const tooMany = await admin
+      .from('testimonials')
+      .insert({ author: 'x', quote: 'x', photo_media_ids: Array(6).fill(station) });
+    expect(tooMany.error?.code).toBe('23514');
+
+    const missing = await admin
+      .from('testimonials')
+      .insert({ author: 'x', quote: 'x', photo_media_ids: [crypto.randomUUID()] });
+    expect(missing.error?.code).toBe('23503');
+  });
+
+  it('ao excluir uma imagem da biblioteca, ela sai das fotos do depoimento', async () => {
+    const { data: media } = await service
+      .from('media')
+      .insert({ src_lg: 'teste/a.webp', src_sm: 'teste/a.webp', width_lg: 1, height_lg: 1, width_sm: 1, height_sm: 1 })
+      .select()
+      .single();
+    const { data: row } = await service
+      .from('testimonials')
+      .insert({ author: 'Teste exclusão', quote: 'x', photo_media_ids: [media!.id, station] })
+      .select()
+      .single();
+    createdTestimonials.push(row!.id);
+
+    await service.from('media').delete().eq('id', media!.id);
+    const { data } = await service.from('testimonials').select('photo_media_ids').eq('id', row!.id).single();
+    expect(data!.photo_media_ids).toEqual([station]);
+  });
+});

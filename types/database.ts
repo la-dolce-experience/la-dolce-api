@@ -223,14 +223,14 @@ isOneToOne: false
                   ]
                 },"testimonials": {
                   Row: {
-                    "author": string,"authorized": boolean,"context": string,"id": string,"media_id": string | null,"position": number,"quote": string,"rating": number,"visible": boolean
+                    "author": string,"authorized": boolean,"context": string,"id": string,"media_id": string | null,"photo_media_ids": (string)[],"position": number,"quote": string,"rating": number,"visible": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "author": string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"position"?: number,"quote": string,"rating"?: number,"visible"?: boolean
+                    "author": string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"quote": string,"rating"?: number,"visible"?: boolean
                   }
                   Update: {
-                    "author"?: string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"position"?: number,"quote"?: string,"rating"?: number,"visible"?: boolean
+                    "author"?: string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"quote"?: string,"rating"?: number,"visible"?: boolean
                   }
                   Relationships: [
                     {
