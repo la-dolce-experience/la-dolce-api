@@ -80,19 +80,22 @@ Serviços locais:
 
 A pasta [`bruno/`](bruno) é uma coleção do [Bruno](https://www.usebruno.com) com os endpoints usados pelo site e pelo painel, verificações de segurança e a **criação de usuários administradores**. Ambientes **Local** e **Homologacao**; as chaves ficam em variáveis secretas, fora do Git. Instruções em [bruno/README.md](bruno/README.md).
 
-## Edge Function `republicar-site`
+## Republicação do site
 
-Chamada pelo painel para republicar o site e atualizar a prévia do link. Só administradores, no máximo uma vez a cada 5 minutos; cada pedido fica em `deploy_requests`.
+A página inicial é pré-renderizada no build do `la-dolce-app`: o HTML publicado só traz o que foi salvo até a última publicação. Por isso o site é republicado na Vercel (Deploy Hook) de dois jeitos, com no máximo uma publicação a cada 5 minutos, todas registradas em `deploy_requests`:
 
-| Secret | Valor |
-|---|---|
-| `VERCEL_DEPLOY_HOOK_URL` | Vercel → Settings → Git → Deploy Hooks (branch `main`). Dispara deploys: **não versionar** |
-| `SITE_ORIGINS` | Origens do site, separadas por vírgula (CORS). Ex.: `https://la-dolce-app.vercel.app` |
+- **Automático:** toda alteração nas tabelas de conteúdo marca `site_publish_state.content_changed_at`. O `pg_cron` roda `publish_site_if_needed()` a cada minuto e publica depois de **2 minutos sem novas alterações**, juntando várias edições em uma publicação. As visitas (`site_events`) não contam.
+- **Manual:** o botão **Atualizar prévia do link** do painel chama a Edge Function `republicar-site`, só para administradores.
+
+O Deploy Hook (Vercel → Settings → Git → Deploy Hooks, branch `main`) fica no **Vault** do banco e é lido pelas duas formas. Ele dispara deploys: **não versionar nem colar em conversas**.
 
 ```bash
+npm run deploy-hook:set -- --url <deploy-hook>   # usa SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY do .env.local
 npm run functions:deploy
-npx supabase secrets set VERCEL_DEPLOY_HOOK_URL=<url> SITE_ORIGINS=<origens>
+npx supabase secrets set SITE_ORIGINS=<origens>   # CORS da Edge Function. Ex.: https://la-dolce-app.vercel.app
 ```
+
+Sem o Deploy Hook, nada é publicado: a função responde "não configurado" e o `pg_cron` não faz nada.
 
 Localmente, a função roda com `npm run db:start` e lê os secrets de `supabase/functions/.env` (no `.gitignore`).
 

@@ -181,6 +181,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"site_publish_state": {
+                  Row: {
+                    "content_changed_at": string | null,"id": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "content_changed_at"?: string | null,"id"?: number
+                  }
+                  Update: {
+                    "content_changed_at"?: string | null,"id"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"site_settings": {
                   Row: {
                     "address_district": string,"address_street": string,"business_name": string,"city": string,"email": string,"facebook_url": string,"footer_tagline": string,"id": number,"instagram_url": string,"logo_media_id": string | null,"maps_url": string,"og_media_id": string | null,"opening_hours": string,"phone": string,"postal_code": string,"seo_description": string,"seo_title": string,"service_area": string,"show_map": boolean,"state": string,"tiktok_url": string,"updated_at": string,"whatsapp_greeting": string,"whatsapp_number": string
@@ -261,7 +275,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "events_summary":
+            "deploy_hook_url":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
+"events_summary":
 { Args: { "p_days"?: number }; Returns: {
               "day": string,"kind": string,"source": string,"total": number
             }[]
@@ -272,11 +289,20 @@ isOneToOne: false
 "is_safe_url":
 { Args: { "value": string }; Returns: boolean
                            },
+"publish_site_if_needed":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "restore_backup":
 { Args: { "p_backup": Json }; Returns: Json
                            },
 "restore_from_trash":
 { Args: { "p_id": string }; Returns: undefined
+                           },
+"set_deploy_hook_url":
+{ Args: { "p_url": string }; Returns: undefined
+                           },
+"site_publish_decision":
+{ Args: { "p_now"?: string }; Returns: string
                            },
 "track_event":
 { Args: { "p_kind": string,"p_source"?: string }; Returns: undefined
