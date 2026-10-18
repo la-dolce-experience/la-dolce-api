@@ -306,6 +306,72 @@ describe('pedidos de republicação do site', () => {
   });
 });
 
+describe('republicação automática', () => {
+  const changedAt = async () =>
+    (await service.from('site_publish_state').select('content_changed_at').single()).data!.content_changed_at;
+  const decision = async (at: Date) => (await service.rpc('site_publish_decision', { p_now: at.toISOString() })).data;
+  const createdRequests: number[] = [];
+
+  afterAll(async () => {
+    if (createdRequests.length) await service.from('deploy_requests').delete().in('id', createdRequests);
+  });
+
+  it('alterar o conteúdo marca o site como desatualizado; visitas não', async () => {
+    const before = await changedAt();
+    await anon.rpc('track_event', { p_kind: 'visit' });
+    expect(await changedAt()).toBe(before);
+
+    const { data: hero } = await admin.from('sections').select('title').eq('key', 'hero').single();
+    expect((await admin.from('sections').update({ title: hero!.title }).eq('key', 'hero')).error).toBeNull();
+    const after = await changedAt();
+    expect(new Date(after!).getTime()).toBeGreaterThan(new Date(before ?? 0).getTime());
+  });
+
+  it('espera 2 minutos sem edições e respeita 5 minutos entre publicações', async () => {
+    const changed = new Date((await changedAt())!);
+    const minutes = (n: number) => new Date(changed.getTime() + n * 60_000);
+    const { data: last } = await service
+      .from('deploy_requests')
+      .select('requested_at')
+      .eq('ok', true)
+      .order('requested_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastAt = last ? new Date(last.requested_at).getTime() : 0;
+
+    expect(await decision(minutes(1))).toBe('aguardando');
+    if (lastAt < minutes(3).getTime() - 5 * 60_000) expect(await decision(minutes(3))).toBe('publicar');
+
+    // Uma publicação feita há pouco (antes desta alteração) segura a próxima pelo intervalo.
+    const { data: recent } = await service
+      .from('deploy_requests')
+      .insert({ ok: true, detail: 'teste', requested_at: minutes(-1).toISOString() })
+      .select('id')
+      .single();
+    createdRequests.push(recent!.id);
+    expect(await decision(minutes(3))).toBe('intervalo');
+
+    // Publicação posterior à alteração: o site está em dia.
+    const { data: covering } = await service
+      .from('deploy_requests')
+      .insert({ ok: true, detail: 'teste', requested_at: minutes(0.5).toISOString() })
+      .select('id')
+      .single();
+    createdRequests.push(covering!.id);
+    expect(await decision(minutes(10))).toBe('em_dia');
+  });
+
+  it('o Deploy Hook só é lido ou gravado pelo servidor, e precisa ser da Vercel', async () => {
+    for (const client of [anon, editor, admin]) {
+      expect((await client.rpc('deploy_hook_url')).error).not.toBeNull();
+      expect((await client.rpc('set_deploy_hook_url', { p_url: 'https://api.vercel.com/x' })).error).not.toBeNull();
+      expect((await client.rpc('site_publish_decision', {})).error).not.toBeNull();
+    }
+    expect((await admin.from('site_publish_state').select('content_changed_at')).error).toBeNull();
+    expect((await service.rpc('set_deploy_hook_url', { p_url: 'https://exemplo.com/hook' })).error?.code).toBe('22023');
+  });
+});
+
 describe('fotos do evento nos depoimentos', () => {
   const station = '00000000-0000-4000-a000-000000000001';
 

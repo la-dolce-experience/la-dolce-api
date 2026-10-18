@@ -1,6 +1,7 @@
 // Edge Function "republicar-site": chamada pelo painel (Google e compartilhamento → Atualizar prévia).
-// Secrets: VERCEL_DEPLOY_HOOK_URL (Vercel → Settings → Git → Deploy Hooks) e SITE_ORIGINS
-// (origens do site separadas por vírgula, ex.: https://la-dolce-app.vercel.app).
+// O Deploy Hook fica no Vault do banco (npm run deploy-hook:set), o mesmo usado pela republicação
+// automática; o secret VERCEL_DEPLOY_HOOK_URL, se definido, tem prioridade.
+// Secret SITE_ORIGINS: origens do site separadas por vírgula (ex.: https://la-dolce-app.vercel.app).
 import { createClient } from 'npm:@supabase/supabase-js@2.118.0';
 import { handle } from './handler.ts';
 
@@ -11,9 +12,16 @@ const local = SUPABASE_URL.startsWith('http://kong') || SUPABASE_URL.includes('1
 
 const service = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
 
-Deno.serve((req) =>
+async function hookUrl(): Promise<string> {
+  const fromEnv = Deno.env.get('VERCEL_DEPLOY_HOOK_URL');
+  if (fromEnv) return fromEnv;
+  const { data } = await service.rpc('deploy_hook_url');
+  return typeof data === 'string' ? data : '';
+}
+
+Deno.serve(async (req) =>
   handle(req, {
-    hookUrl: Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '',
+    hookUrl: req.method === 'POST' ? await hookUrl() : '',
     allowInsecureHook: local,
     allowedOrigins: (Deno.env.get('SITE_ORIGINS') ?? 'http://localhost:5173')
       .split(',')
