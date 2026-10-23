@@ -1,6 +1,6 @@
 // Volta o conteúdo do site para uma cópia de segurança baixada no painel
 // (Lixeira e backup > "Baixar cópia do conteúdo", arquivo la-dolce-conteudo-AAAA-MM-DD.json).
-// Só aceita esse arquivo: formato "la-dolce-backup", versão 1.
+// Só aceita esse arquivo: formato "la-dolce-backup", versão 2.
 //
 // Uso:
 //   npm run backup:restore -- --file caminho/la-dolce-conteudo-2026-10-17.json             confere e mostra o que muda
@@ -18,29 +18,12 @@ import { createClient } from '@supabase/supabase-js';
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
-const TABLES = [
-  'site_settings',
-  'sections',
-  'event_types',
-  'features',
-  'flavor_items',
-  'steps',
-  'gallery_items',
-  'faqs',
-  'testimonials',
-  'media',
-];
+const TABLES = ['site_settings', 'sections', 'section_items', 'media'];
 const LABELS = {
   site_settings: 'Configurações',
   sections: 'Seções',
-  event_types: 'Tipos de evento',
-  features: 'Diferenciais',
-  flavor_items: 'Sabores e apresentações',
-  steps: 'Como funciona',
-  gallery_items: 'Galeria',
-  faqs: 'Perguntas frequentes',
-  testimonials: 'Depoimentos',
-  media: 'Imagens (referências)',
+  section_items: 'Itens das seções',
+  media: 'Imagens',
 };
 const MEDIA_BUCKET = 'media';
 
@@ -73,7 +56,10 @@ try {
 const notPanelBackup =
   'O arquivo não é uma cópia de segurança baixada no painel (Lixeira e backup > Baixar cópia do conteúdo).';
 if (backup?.formato !== 'la-dolce-backup') fail(notPanelBackup);
-if (backup.versao !== 1) fail(`Versão de cópia não suportada: ${backup.versao}. Este script restaura a versão 1.`);
+if (backup.versao !== 2)
+  fail(
+    `Versão de cópia não suportada: ${backup.versao}. Este script restaura a versão 2 (cópias baixadas a partir de 23/10/2026, com seções ordenáveis).`,
+  );
 const generatedAt = new Date(backup.geradoEm);
 if (Number.isNaN(generatedAt.getTime())) fail(`${notPanelBackup} (data "geradoEm" ausente ou inválida)`);
 for (const t of TABLES) {
@@ -87,7 +73,7 @@ const db = createClient(url, serviceKey, { auth: { persistSession: false, autoRe
 
 /** Conteúdo atual no mesmo formato do painel (adminService.exportContent). */
 async function exportCurrent() {
-  const order = { sections: ['key'], flavor_items: ['kind', 'position'], media: ['created_at'], site_settings: [] };
+  const order = { section_items: ['section_id', 'position'], media: ['created_at'], site_settings: [] };
   const dados = {};
   for (const t of TABLES) {
     let query = db.from(t).select('*');
@@ -98,10 +84,10 @@ async function exportCurrent() {
   }
   return {
     formato: 'la-dolce-backup',
-    versao: 1,
+    versao: 2,
     geradoEm: new Date().toISOString(),
     observacao:
-      'Cópia dos textos, contatos, listas e referências das imagens. Os arquivos de imagem ficam no Storage do Supabase (bucket "media").',
+      'Cópia dos textos, contatos, seções e referências das imagens. Os arquivos de imagem ficam no Storage do Supabase (bucket "media").',
     dados,
   };
 }
@@ -160,7 +146,7 @@ if (error) fail(`\nA restauração falhou e nada foi alterado: ${error.message}`
 
 console.log('\nConteúdo restaurado:');
 for (const t of TABLES) console.log(`  ${LABELS[t]}: ${restored[t] ?? 0}`);
-console.log('\nItens das listas que não estavam na cópia foram para a Lixeira do painel (30 dias).');
+console.log('\nSeções e itens que não estavam na cópia foram para a Lixeira do painel (30 dias).');
 console.log(
   'No painel, use "Atualizar prévia do link" para o título e a imagem de compartilhamento acompanharem a cópia.\n',
 );

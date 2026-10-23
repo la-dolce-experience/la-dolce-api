@@ -25,13 +25,49 @@ const adminEmail = `admin-${stamp}@teste.local`;
 const editorEmail = `intruso-${stamp}@teste.local`;
 const password = `Aa1-${crypto.randomUUID()}`; // gerada a cada execução
 const createdUsers: string[] = [];
-const createdTestimonials: string[] = [];
+const createdSections: string[] = [];
+const createdMedia: string[] = [];
+
+// Seções do seed (la-dolce-data/seed/seed.sql), com os mesmos ids da migração 20261023120000_secoes_ordenaveis.
+const HERO = '00000000-0000-4000-b000-000000000001';
+const FORM = '00000000-0000-4000-b000-000000000011';
+const FAQ = '00000000-0000-4000-b000-000000000013';
+const TESTIMONIALS = '00000000-0000-4000-b000-000000000010';
 
 async function signedClient(email: string) {
   const client = createClient<Database>(url, anonKey, opts);
   const { error } = await client.auth.signInWithPassword({ email, password });
   if (error) throw error;
   return client;
+}
+
+/** Seção temporária, criada pelo servidor e apagada no fim. */
+async function tempSection(patch: Partial<Database['public']['Tables']['sections']['Insert']> = {}) {
+  const { data, error } = await service
+    .from('sections')
+    .insert({
+      type: 'texto_imagem',
+      slug: `teste-${stamp}-${createdSections.length}`,
+      name: 'Teste',
+      position: 999,
+      ...patch,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  createdSections.push(data.id);
+  return data;
+}
+
+async function tempMedia() {
+  const { data, error } = await service
+    .from('media')
+    .insert({ src_lg: 'teste/a.webp', src_sm: 'teste/a.webp', width_lg: 1, height_lg: 1, width_sm: 1, height_sm: 1 })
+    .select()
+    .single();
+  if (error) throw error;
+  createdMedia.push(data.id);
+  return data;
 }
 
 beforeAll(async () => {
@@ -46,28 +82,35 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (createdTestimonials.length) await service.from('testimonials').delete().in('id', createdTestimonials);
+  if (createdSections.length) {
+    await service.from('sections').delete().in('id', createdSections);
+    await service.from('trash').delete().in('row_data->>id', createdSections);
+    await service.from('trash').delete().in('row_data->>section_id', createdSections);
+  }
+  if (createdMedia.length) await service.from('media').delete().in('id', createdMedia);
   for (const id of createdUsers) await service.auth.admin.deleteUser(id);
 });
 
 describe('leitura pública', () => {
   it('visitante lê o conteúdo do site', async () => {
-    const { data, error } = await anon.from('sections').select('key, title').eq('key', 'hero').single();
+    const { data, error } = await anon.from('sections').select('type, title').eq('id', HERO).single();
     expect(error).toBeNull();
     expect(data?.title).toBeTruthy();
   });
 
-  it('visitante NÃO vê depoimentos sem autorização de uso, o admin vê', async () => {
-    const { data: row } = await service
-      .from('testimonials')
-      .insert({ author: 'Teste', quote: 'Não autorizado', authorized: false })
+  it('visitante NÃO vê seções ocultas nem depoimentos sem autorização; o admin vê', async () => {
+    const hidden = await tempSection({ visible: false });
+    const { data: item } = await service
+      .from('section_items')
+      .insert({ section_id: TESTIMONIALS, title: 'Teste', description: 'Não autorizado', authorized: false })
       .select()
       .single();
-    createdTestimonials.push(row!.id);
-    const publicRows = await anon.from('testimonials').select('id').eq('id', row!.id);
-    const adminRows = await admin.from('testimonials').select('id').eq('id', row!.id);
-    expect(publicRows.data).toEqual([]);
-    expect(adminRows.data).toHaveLength(1);
+    expect((await anon.from('sections').select('id').eq('id', hidden.id)).data).toEqual([]);
+    expect((await admin.from('sections').select('id').eq('id', hidden.id)).data).toHaveLength(1);
+    expect((await anon.from('section_items').select('id').eq('id', item!.id)).data).toEqual([]);
+    expect((await admin.from('section_items').select('id').eq('id', item!.id)).data).toHaveLength(1);
+    await service.from('section_items').delete().eq('id', item!.id);
+    await service.from('trash').delete().eq('row_data->>id', item!.id);
   });
 
   it('visitante não lista administradores', async () => {
@@ -80,18 +123,33 @@ describe('escrita bloqueada para quem não é admin', () => {
   it.each([
     ['visitante', () => anon],
     ['usuário logado sem permissão', () => editor],
-  ])('%s não altera seções', async (_label, client) => {
-    const { data } = await client().from('sections').update({ title: 'HACK' }).eq('key', 'hero').select();
+  ])('%s não altera, cria, reordena nem exclui seções', async (_label, client) => {
+    const { data } = await client().from('sections').update({ title: 'HACK' }).eq('id', HERO).select();
     expect(data ?? []).toEqual([]);
-    const check = await service.from('sections').select('title').eq('key', 'hero').single();
-    expect(check.data?.title).not.toBe('HACK');
+    expect((await service.from('sections').select('title').eq('id', HERO).single()).data?.title).not.toBe('HACK');
+
+    const insert = await client()
+      .from('sections')
+      .insert({ type: 'faq', slug: `hack-${stamp}`, name: 'Hack' });
+    expect(insert.error?.code).toBe('42501');
+    expect((await client().rpc('reorder_sections', { p_ids: [FAQ, HERO] })).error).not.toBeNull();
+    expect(
+      (
+        await client().rpc('create_section', {
+          p_section: { type: 'faq', slug: `hack2-${stamp}`, name: 'x' },
+          p_position: 0,
+        })
+      ).error,
+    ).not.toBeNull();
+    await client().from('sections').delete().eq('id', FAQ);
+    expect((await service.from('sections').select('id').eq('id', FAQ)).data).toHaveLength(1);
   });
 
   it.each([
     ['visitante', () => anon],
     ['usuário logado sem permissão', () => editor],
   ])('%s não insere itens', async (_label, client) => {
-    const { error } = await client().from('faqs').insert({ question: 'Spam?', answer: 'Spam' });
+    const { error } = await client().from('section_items').insert({ section_id: FAQ, title: 'Spam?' });
     expect(error?.code).toBe('42501');
   });
 
@@ -119,33 +177,40 @@ describe('escrita bloqueada para quem não é admin', () => {
 
 describe('administrador', () => {
   it('altera conteúdo e a alteração fica visível ao público', async () => {
-    const original = (await anon.from('sections').select('body').eq('key', 'quote').single()).data!.body;
+    const original = (await anon.from('sections').select('body').eq('id', FORM).single()).data!.body;
     const updated = await admin
       .from('sections')
       .update({ body: `${original} [teste]` })
-      .eq('key', 'quote')
+      .eq('id', FORM)
       .select();
     expect(updated.error).toBeNull();
-    expect((await anon.from('sections').select('body').eq('key', 'quote').single()).data?.body).toBe(
-      `${original} [teste]`,
-    );
-    await admin.from('sections').update({ body: original }).eq('key', 'quote');
+    expect((await anon.from('sections').select('body').eq('id', FORM).single()).data?.body).toBe(`${original} [teste]`);
+    await admin.from('sections').update({ body: original }).eq('id', FORM);
   });
 
-  it('não consegue apagar seções fixas nem a configuração', async () => {
-    await admin.from('sections').delete().eq('key', 'hero');
+  it('não consegue apagar a configuração do site', async () => {
     await admin.from('site_settings').delete().eq('id', 1);
-    expect((await anon.from('sections').select('key').eq('key', 'hero')).data).toHaveLength(1);
     expect((await anon.from('site_settings').select('id')).data).toHaveLength(1);
   });
 
   it('o banco rejeita dados inválidos mesmo vindos do admin', async () => {
     const badNumber = await admin.from('site_settings').update({ whatsapp_number: 'abc' }).eq('id', 1);
     const badUrl = await admin.from('site_settings').update({ instagram_url: 'javascript:alert(1)' }).eq('id', 1);
-    const badSection = await admin.from('sections').insert({ key: 'inventada' });
-    expect(badNumber.error?.code).toBe('23514');
-    expect(badUrl.error?.code).toBe('23514');
-    expect(badSection.error).not.toBeNull();
+    const badType = await admin.from('sections').insert({ type: 'inventado', slug: `x-${stamp}`, name: 'x' });
+    const badSlug = await admin.from('sections').insert({ type: 'faq', slug: 'Com Espaço', name: 'x' });
+    const reserved = await admin.from('sections').insert({ type: 'faq', slug: 'inicio', name: 'x' });
+    const badOptions = await admin
+      .from('sections')
+      .update({ options: [1, 2] as unknown as never })
+      .eq('id', FAQ);
+    for (const r of [badNumber, badUrl, badType, badSlug, reserved, badOptions]) expect(r.error?.code).toBe('23514');
+  });
+
+  it('só pode haver um destaque, um formulário e um bloco de atendimento; endereços não se repetem', async () => {
+    const hero = await admin.from('sections').insert({ type: 'hero', slug: `hero-${stamp}`, name: 'Outro' });
+    const slug = await admin.from('sections').insert({ type: 'faq', slug: 'duvidas', name: 'Outro' });
+    expect(hero.error?.code).toBe('23505');
+    expect(slug.error?.code).toBe('23505');
   });
 
   it('envia e remove imagens do Storage; tipos não permitidos são recusados', async () => {
@@ -166,10 +231,86 @@ describe('administrador', () => {
   });
 });
 
+describe('ordem e criação de seções', () => {
+  const order = async () =>
+    (await service.from('sections').select('id, position').order('position')).data!.map((s) => s.id);
+
+  it('cria uma seção na posição pedida e empurra as seguintes', async () => {
+    const before = await order();
+    const { data, error } = await admin
+      .rpc('create_section', {
+        p_section: {
+          type: 'faq',
+          slug: `nova-${stamp}`,
+          name: 'Nova',
+          icon: 'ice-cream-bowl',
+          title: 'Nova seção',
+          options: { a: 'b' },
+        },
+        p_position: 1,
+      })
+      .returns<Database['public']['Tables']['sections']['Row']>();
+    expect(error).toBeNull();
+    createdSections.push(data!.id);
+    expect(data!.options).toEqual({ a: 'b' });
+    expect(data!.icon).toBe('ice-cream-bowl');
+    const after = await order();
+    expect(after).toEqual([before[0], data!.id, ...before.slice(1)]);
+  });
+
+  it('o ícone do menu só aceita nomes simples (letras minúsculas, números e hífens)', async () => {
+    const section = await tempSection();
+    const bad = await admin.from('sections').update({ icon: '<svg onload=x>' }).eq('id', section.id);
+    expect(bad.error?.code).toBe('23514');
+    const ok = await admin.from('sections').update({ icon: 'party-popper' }).eq('id', section.id).select('icon');
+    expect(ok.data?.[0].icon).toBe('party-popper');
+  });
+
+  it('reordena todas as seções de uma vez', async () => {
+    const before = await order();
+    const reversed = [...before].reverse();
+    expect((await admin.rpc('reorder_sections', { p_ids: reversed })).error).toBeNull();
+    expect(await order()).toEqual(reversed);
+    expect((await admin.rpc('reorder_sections', { p_ids: before })).error).toBeNull();
+    expect(await order()).toEqual(before);
+  });
+
+  it('duplica a seção com os itens, oculta, logo abaixo da original', async () => {
+    const { data: copy, error } = await admin
+      .rpc('duplicate_section', { p_id: FAQ, p_slug: `duvidas-copia-${stamp}`, p_name: 'Cópia' })
+      .returns<Database['public']['Tables']['sections']['Row']>();
+    expect(error).toBeNull();
+    createdSections.push(copy!.id);
+    const original = (await service.from('sections').select('position').eq('id', FAQ).single()).data!;
+    expect(copy!.visible).toBe(false);
+    expect(copy!.icon).toBe('circle-help'); // a cópia mantém o ícone da original
+    expect(copy!.position).toBe(original.position + 1);
+    const count = async (id: string) =>
+      (await service.from('section_items').select('id').eq('section_id', id)).data!.length;
+    expect(await count(copy!.id)).toBe(await count(FAQ));
+  });
+
+  it('reordena os itens de uma seção', async () => {
+    const section = await tempSection({ type: 'faq' });
+    const { data: items } = await service
+      .from('section_items')
+      .insert([
+        { section_id: section.id, title: 'A', position: 0 },
+        { section_id: section.id, title: 'B', position: 1 },
+      ])
+      .select();
+    const ids = items!.map((i) => i.id).reverse();
+    expect((await admin.rpc('reorder_section_items', { p_ids: ids })).error).toBeNull();
+    const { data } = await service.from('section_items').select('title').eq('section_id', section.id).order('position');
+    expect(data!.map((i) => i.title)).toEqual(['B', 'A']);
+  });
+});
+
 describe('métricas de visitas e cliques', () => {
   it('visitante registra eventos, mas não lê a tabela nem o resumo', async () => {
     expect((await anon.rpc('track_event', { p_kind: 'visit' })).error).toBeNull();
     expect((await anon.rpc('track_event', { p_kind: 'whatsapp_click', p_source: 'botao_flutuante' })).error).toBeNull();
+    expect((await anon.rpc('track_event', { p_kind: 'whatsapp_click', p_source: 'como-funciona' })).error).toBeNull();
     expect((await anon.from('site_events').select('*')).data ?? []).toEqual([]);
     expect((await anon.rpc('events_summary', { p_days: 30 })).error).not.toBeNull();
     expect((await editor.rpc('events_summary', { p_days: 30 })).error?.code).toBe('42501');
@@ -190,62 +331,70 @@ describe('métricas de visitas e cliques', () => {
 
 describe('lixeira', () => {
   it('item excluído vai para a lixeira e pode ser restaurado', async () => {
-    const { data: faq } = await admin
-      .from('faqs')
-      .insert({ question: `Lixeira ${stamp}?`, answer: 'Teste', visible: false })
+    const section = await tempSection({ type: 'faq' });
+    const { data: item } = await admin
+      .from('section_items')
+      .insert({ section_id: section.id, title: `Lixeira ${stamp}?`, description: 'Teste' })
       .select()
       .single();
-    expect((await admin.from('faqs').delete().eq('id', faq!.id)).error).toBeNull();
+    expect((await admin.from('section_items').delete().eq('id', item!.id)).error).toBeNull();
 
-    const { data: trashed } = await admin.from('trash').select('*').eq('row_data->>id', faq!.id).single();
-    expect(trashed!.table_name).toBe('faqs');
+    const { data: trashed } = await admin.from('trash').select('*').eq('row_data->>id', item!.id).single();
+    expect(trashed!.table_name).toBe('section_items');
     expect(trashed!.label).toBe(`Lixeira ${stamp}?`);
 
     expect((await admin.rpc('restore_from_trash', { p_id: trashed!.id })).error).toBeNull();
-    const { data: restored } = await admin.from('faqs').select('*').eq('id', faq!.id).single();
-    expect(restored!.question).toBe(`Lixeira ${stamp}?`);
+    expect((await admin.from('section_items').select('title').eq('id', item!.id).single()).data!.title).toBe(
+      `Lixeira ${stamp}?`,
+    );
     expect((await admin.from('trash').select('id').eq('id', trashed!.id)).data).toEqual([]);
+  });
 
-    await service.from('faqs').delete().eq('id', faq!.id);
-    await service.from('trash').delete().eq('row_data->>id', faq!.id);
+  it('seção excluída leva os itens para a lixeira e volta com eles', async () => {
+    const section = await tempSection({ type: 'faq', name: `Seção ${stamp}` });
+    await service.from('section_items').insert([
+      { section_id: section.id, title: 'P1' },
+      { section_id: section.id, title: 'P2' },
+    ]);
+    expect((await admin.from('sections').delete().eq('id', section.id)).error).toBeNull();
+    const { data: trash } = await admin.from('trash').select('*').eq('row_data->>section_id', section.id);
+    expect(trash).toHaveLength(2);
+
+    // Um item sozinho não volta: a seção dele está na lixeira.
+    const lonely = await admin.rpc('restore_from_trash', { p_id: trash![0].id });
+    expect(lonely.error?.hint).toBe('secao_excluida');
+
+    const { data: sectionTrash } = await admin
+      .from('trash')
+      .select('id, label')
+      .eq('row_data->>id', section.id)
+      .single();
+    expect(sectionTrash!.label).toBe(`Seção ${stamp}`);
+    expect((await admin.rpc('restore_from_trash', { p_id: sectionTrash!.id })).error).toBeNull();
+    expect((await service.from('section_items').select('id').eq('section_id', section.id)).data).toHaveLength(2);
+    expect((await admin.from('trash').select('id').eq('row_data->>section_id', section.id)).data).toEqual([]);
   });
 
   it('visitante e usuário sem permissão não veem nem restauram a lixeira', async () => {
-    const { data: faq } = await service
-      .from('faqs')
-      .insert({ question: `Lixeira 2 ${stamp}?`, answer: 'Teste', visible: false })
-      .select()
-      .single();
-    await service.from('faqs').delete().eq('id', faq!.id);
-    const { data: trashed } = await service.from('trash').select('id').eq('row_data->>id', faq!.id).single();
+    const section = await tempSection({ type: 'faq' });
+    await service.from('sections').delete().eq('id', section.id);
+    const { data: trashed } = await service.from('trash').select('id').eq('row_data->>id', section.id).single();
 
     for (const client of [anon, editor]) {
       expect((await client.from('trash').select('*')).data ?? []).toEqual([]);
       expect((await client.rpc('restore_from_trash', { p_id: trashed!.id })).error).not.toBeNull();
     }
-    expect((await service.from('faqs').select('id').eq('id', faq!.id)).data).toEqual([]);
-    await service.from('trash').delete().eq('id', trashed!.id);
+    expect((await service.from('sections').select('id').eq('id', section.id)).data).toEqual([]);
   });
 });
 
 describe('restauração da cópia de segurança', () => {
-  const tables = [
-    'site_settings',
-    'sections',
-    'event_types',
-    'features',
-    'flavor_items',
-    'steps',
-    'gallery_items',
-    'faqs',
-    'testimonials',
-    'media',
-  ] as const;
+  const tables = ['site_settings', 'sections', 'section_items', 'media'] as const;
 
   async function panelBackup() {
     const dados: Record<string, Json[]> = {};
     for (const t of tables) dados[t] = (await service.from(t).select('*')).data as Json[];
-    return { formato: 'la-dolce-backup', versao: 1, geradoEm: new Date().toISOString(), observacao: '', dados };
+    return { formato: 'la-dolce-backup', versao: 2, geradoEm: new Date().toISOString(), observacao: '', dados };
   }
 
   it('só a service_role restaura; admin, usuário sem permissão e visitante não', async () => {
@@ -260,7 +409,7 @@ describe('restauração da cópia de segurança', () => {
     const backup = await panelBackup();
     for (const p_backup of [
       { ...backup, formato: 'outro' },
-      { ...backup, versao: 2 },
+      { ...backup, versao: 1 },
       { ...backup, dados: {} },
     ]) {
       const { error } = await service.rpc('restore_backup', { p_backup });
@@ -275,9 +424,9 @@ describe('restauração da cópia de segurança', () => {
       .from('site_settings')
       .update({ business_name: `Alterado ${stamp}` })
       .eq('id', 1);
-    const { data: faq } = await service
-      .from('faqs')
-      .insert({ question: `Depois da cópia ${stamp}?`, answer: 'Teste', visible: false })
+    const { data: item } = await service
+      .from('section_items')
+      .insert({ section_id: FAQ, title: `Depois da cópia ${stamp}?` })
       .select()
       .single();
 
@@ -286,12 +435,12 @@ describe('restauração da cópia de segurança', () => {
     const { error } = await service.rpc('restore_backup', { p_backup: backup });
     expect(error).toBeNull();
     expect((await service.from('site_settings').select('business_name').single()).data).toEqual(settings);
-    expect((await service.from('faqs').select('id').eq('id', faq!.id)).data).toEqual([]);
+    expect((await service.from('section_items').select('id').eq('id', item!.id)).data).toEqual([]);
 
-    // Os itens que a cópia trouxe de volta não ficam duplicados na lixeira.
+    // O que a cópia trouxe de volta não fica duplicado na lixeira.
     const { data: trash } = await service.from('trash').select('id, row_data');
     const added = trash!.filter((r) => !trashBefore.has(r.id));
-    expect(added.map((r) => (r.row_data as { id: string }).id)).toEqual([faq!.id]);
+    expect(added.map((r) => (r.row_data as { id: string }).id)).toEqual([item!.id]);
     await service.from('trash').delete().eq('id', added[0].id);
   });
 });
@@ -321,8 +470,8 @@ describe('republicação automática', () => {
     await anon.rpc('track_event', { p_kind: 'visit' });
     expect(await changedAt()).toBe(before);
 
-    const { data: hero } = await admin.from('sections').select('title').eq('key', 'hero').single();
-    expect((await admin.from('sections').update({ title: hero!.title }).eq('key', 'hero')).error).toBeNull();
+    const { data: hero } = await admin.from('sections').select('title').eq('id', HERO).single();
+    expect((await admin.from('sections').update({ title: hero!.title }).eq('id', HERO)).error).toBeNull();
     const after = await changedAt();
     expect(new Date(after!).getTime()).toBeGreaterThan(new Date(before ?? 0).getTime());
   });
@@ -372,45 +521,40 @@ describe('republicação automática', () => {
   });
 });
 
-describe('fotos do evento nos depoimentos', () => {
-  const station = '00000000-0000-4000-a000-000000000001';
-
+describe('fotos extras dos itens (depoimentos)', () => {
   it('aceita até 5 fotos da biblioteca; recusa mais que isso e fotos inexistentes', async () => {
+    const photo = (await tempMedia()).id;
+    const section = await tempSection({ type: 'depoimentos' });
     const ok = await admin
-      .from('testimonials')
-      .insert({ author: 'Teste fotos', quote: 'x', photo_media_ids: [station, station] })
+      .from('section_items')
+      .insert({ section_id: section.id, title: 'Teste fotos', photo_media_ids: [photo, photo] })
       .select()
       .single();
     expect(ok.error).toBeNull();
-    createdTestimonials.push(ok.data!.id);
-    expect(ok.data!.photo_media_ids).toEqual([station, station]);
+    expect(ok.data!.photo_media_ids).toEqual([photo, photo]);
 
     const tooMany = await admin
-      .from('testimonials')
-      .insert({ author: 'x', quote: 'x', photo_media_ids: Array(6).fill(station) });
+      .from('section_items')
+      .insert({ section_id: section.id, title: 'x', photo_media_ids: Array(6).fill(photo) });
     expect(tooMany.error?.code).toBe('23514');
 
     const missing = await admin
-      .from('testimonials')
-      .insert({ author: 'x', quote: 'x', photo_media_ids: [crypto.randomUUID()] });
+      .from('section_items')
+      .insert({ section_id: section.id, title: 'x', photo_media_ids: [crypto.randomUUID()] });
     expect(missing.error?.code).toBe('23503');
   });
 
-  it('ao excluir uma imagem da biblioteca, ela sai das fotos do depoimento', async () => {
-    const { data: media } = await service
-      .from('media')
-      .insert({ src_lg: 'teste/a.webp', src_sm: 'teste/a.webp', width_lg: 1, height_lg: 1, width_sm: 1, height_sm: 1 })
-      .select()
-      .single();
+  it('ao excluir uma imagem da biblioteca, ela sai das fotos do item', async () => {
+    const [a, b] = [await tempMedia(), await tempMedia()];
+    const section = await tempSection({ type: 'depoimentos' });
     const { data: row } = await service
-      .from('testimonials')
-      .insert({ author: 'Teste exclusão', quote: 'x', photo_media_ids: [media!.id, station] })
+      .from('section_items')
+      .insert({ section_id: section.id, title: 'Teste exclusão', photo_media_ids: [a.id, b.id] })
       .select()
       .single();
-    createdTestimonials.push(row!.id);
 
-    await service.from('media').delete().eq('id', media!.id);
-    const { data } = await service.from('testimonials').select('photo_media_ids').eq('id', row!.id).single();
-    expect(data!.photo_media_ids).toEqual([station]);
+    await service.from('media').delete().eq('id', a.id);
+    const { data } = await service.from('section_items').select('photo_media_ids').eq('id', row!.id).single();
+    expect(data!.photo_media_ids).toEqual([b.id]);
   });
 });

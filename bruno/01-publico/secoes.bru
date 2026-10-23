@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/rest/v1/sections?select=*&order=key
+  url: {{baseUrl}}/rest/v1/sections?select=*&order=position
   body: none
   auth: none
 }
@@ -15,7 +15,7 @@ headers {
 }
 
 script:post-response {
-  const hero = (res.getBody() || []).find((s) => s.key === 'hero');
+  const hero = (res.getBody() || []).find((s) => s.type === 'hero');
   if (hero) bru.setVar('heroTitle', hero.title);
 }
 
@@ -24,7 +24,7 @@ tests {
     expect(res.getStatus()).to.equal(200);
   });
 
-  test('seção hero presente', function () {
-    expect(res.getBody().map((s) => s.key)).to.include('hero');
+  test('destaque principal presente', function () {
+    expect(res.getBody().map((s) => s.type)).to.include('hero');
   });
 }

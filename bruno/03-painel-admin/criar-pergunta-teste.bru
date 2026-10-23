@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/rest/v1/faqs
+  url: {{baseUrl}}/rest/v1/section_items
   body: json
   auth: bearer
 }
@@ -22,8 +22,9 @@ auth:bearer {
 
 body:json {
   {
-    "question": "[Teste Bruno] Pergunta de teste",
-    "answer": "Criada pela coleção do Bruno. Pode excluir.",
+    "section_id": "00000000-0000-4000-b000-000000000013",
+    "title": "[Teste Bruno] Pergunta de teste",
+    "description": "Criada pela coleção do Bruno. Pode excluir.",
     "visible": false,
     "position": 999
   }

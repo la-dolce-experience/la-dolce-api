@@ -5,7 +5,7 @@ meta {
 }
 
 patch {
-  url: {{baseUrl}}/rest/v1/faqs?id=eq.{{testFaqId}}
+  url: {{baseUrl}}/rest/v1/section_items?id=eq.{{testFaqId}}
   body: json
   auth: bearer
 }
@@ -22,7 +22,7 @@ auth:bearer {
 
 body:json {
   {
-    "answer": "Editada pela coleção do Bruno."
+    "description": "Editada pela coleção do Bruno."
   }
 }
 
@@ -40,6 +40,6 @@ tests {
   });
 
   test('resposta atualizada', function () {
-    expect(res.getBody()[0].answer).to.equal('Editada pela coleção do Bruno.');
+    expect(res.getBody()[0].description).to.equal('Editada pela coleção do Bruno.');
   });
 }

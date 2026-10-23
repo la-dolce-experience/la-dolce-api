@@ -32,7 +32,7 @@ Clone os quatro **lado a lado** na mesma pasta: o `supabase/config.toml` carrega
 ```
 supabase/
   config.toml           Configuração do Supabase local (Auth, Storage, caminho do seed)
-  migrations/           Schema versionado: tabelas, RLS, bucket de imagens, métricas, lixeira
+  migrations/           Schema versionado: seções ordenáveis e itens, RLS, bucket de imagens, métricas, lixeira
   functions/
     republicar-site/    Edge Function que republica o site na Vercel (botão "Atualizar prévia do link")
 types/database.ts       Tipos TypeScript gerados a partir do schema (copiados para o la-dolce-app)
@@ -111,7 +111,8 @@ npm run backup:restore -- --file ~/Downloads/la-dolce-conteudo-2026-10-17.json -
 - O projeto restaurado é o do `SUPABASE_URL` no `.env.local`, que o script mostra antes. Para produção, use a URL e a secret key de produção.
 - Antes de restaurar, o conteúdo atual é salvo ao lado do arquivo (`la-dolce-conteudo-antes-da-restauracao-*.json`). Para desfazer, restaure esse arquivo.
 - A restauração roda numa transação (função `restore_backup`, só com a service_role): se algo falhar, nada muda.
-- Configurações, seções, listas e referências das imagens voltam com os mesmos ids. Itens das listas que não estavam na cópia vão para a Lixeira do painel (30 dias). Imagens enviadas depois da cópia continuam na biblioteca.
+- Configurações, seções (com a ordem), itens e referências das imagens voltam com os mesmos ids. Seções e itens que não estavam na cópia vão para a Lixeira do painel (30 dias). Imagens enviadas depois da cópia continuam na biblioteca.
+- Só aceita cópias da **versão 2** (baixadas a partir de 23/10/2026, com as seções ordenáveis). Cópias anteriores (versão 1) eram do modelo com uma tabela por lista e não podem ser restauradas.
 - Os arquivos de imagem não fazem parte da cópia. Se algum foi apagado do Storage, o script avisa antes, e a foto precisa ser trocada no painel.
 - Depois, peça no painel **Atualizar prévia do link**.
 
@@ -144,7 +145,9 @@ O seed de produção e as configurações do painel do Supabase estão no guia `
 | **Migrations, seed, RLS e tipos** | Formatação, tipos e testes das funções; sobe o Supabase com o seed do `la-dolce-data`; confere se `types/database.ts` bate com as migrations; roda os testes de segurança |
 | **Segredos e dependências** | Gitleaks em todo o histórico, arquivos `.env` e chaves versionados, `npm audit` |
 
-O primeiro job baixa o `la-dolce-data` e precisa do secret **`LA_DOLCE_REPOS_TOKEN`** (veja abaixo). Nenhuma chave do Supabase de produção vai para o GitHub.
+O primeiro job baixa o `la-dolce-data` e precisa do secret **`LA_DOLCE_REPOS_TOKEN`** (veja abaixo).
+
+Mudança que atravessa repositórios (ex.: migration aqui + seed novo no `la-dolce-data` + app): use **o mesmo nome de branch** nos repositórios envolvidos. A CI de cada um baixa o branch de mesmo nome dos outros quando ele existe, e o `main` quando não existe. Assim os PRs passam juntos, antes de qualquer um entrar no `main`. Nenhuma chave do Supabase de produção vai para o GitHub.
 
 ### Secret `LA_DOLCE_REPOS_TOKEN`
 

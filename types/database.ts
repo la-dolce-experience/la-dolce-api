@@ -51,88 +51,6 @@ export type Database = {
                   Relationships: [
                     
                   ]
-                },"event_types": {
-                  Row: {
-                    "description": string,"form_label": string,"id": string,"position": number,"title": string,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "description"?: string,"form_label": string,"id"?: string,"position"?: number,"title": string,"visible"?: boolean
-                  }
-                  Update: {
-                    "description"?: string,"form_label"?: string,"id"?: string,"position"?: number,"title"?: string,"visible"?: boolean
-                  }
-                  Relationships: [
-                    
-                  ]
-                },"faqs": {
-                  Row: {
-                    "answer": string,"id": string,"position": number,"question": string,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "answer": string,"id"?: string,"position"?: number,"question": string,"visible"?: boolean
-                  }
-                  Update: {
-                    "answer"?: string,"id"?: string,"position"?: number,"question"?: string,"visible"?: boolean
-                  }
-                  Relationships: [
-                    
-                  ]
-                },"features": {
-                  Row: {
-                    "id": string,"label": string,"position": number,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "id"?: string,"label": string,"position"?: number,"visible"?: boolean
-                  }
-                  Update: {
-                    "id"?: string,"label"?: string,"position"?: number,"visible"?: boolean
-                  }
-                  Relationships: [
-                    
-                  ]
-                },"flavor_items": {
-                  Row: {
-                    "alt": string,"description": string,"id": string,"kind": string,"media_id": string | null,"position": number,"title": string,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "alt"?: string,"description"?: string,"id"?: string,"kind": string,"media_id"?: string | null,"position"?: number,"title": string,"visible"?: boolean
-                  }
-                  Update: {
-                    "alt"?: string,"description"?: string,"id"?: string,"kind"?: string,"media_id"?: string | null,"position"?: number,"title"?: string,"visible"?: boolean
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "flavor_items_media_id_fkey"
-      columns: ["media_id"]
-isOneToOne: false
-      referencedRelation: "media"
-      referencedColumns: ["id"]
-    }
-                  ]
-                },"gallery_items": {
-                  Row: {
-                    "alt": string,"caption": string,"id": string,"media_id": string,"position": number,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "alt"?: string,"caption"?: string,"id"?: string,"media_id": string,"position"?: number,"visible"?: boolean
-                  }
-                  Update: {
-                    "alt"?: string,"caption"?: string,"id"?: string,"media_id"?: string,"position"?: number,"visible"?: boolean
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "gallery_items_media_id_fkey"
-      columns: ["media_id"]
-isOneToOne: false
-      referencedRelation: "media"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"media": {
                   Row: {
                     "alt": string,"created_at": string,"height_lg": number,"height_sm": number,"id": string,"mime_type": string,"original_name": string,"size_bytes": number,"src_lg": string,"src_sm": string,"width_lg": number,"width_sm": number
@@ -147,16 +65,42 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"sections": {
+                },"section_items": {
                   Row: {
-                    "body": string,"cta_label": string,"eyebrow": string,"image_alt": string,"image_caption": string,"image_media_id": string | null,"key": string,"note": string,"title": string,"updated_at": string,"visible": boolean
+                    "alt": string,"authorized": boolean,"description": string,"id": string,"label": string,"media_id": string | null,"photo_media_ids": (string)[],"position": number,"rating": number,"section_id": string,"title": string,"visible": boolean
                   }
                   ComputedFields: never
                   Insert: {
-                    "body"?: string,"cta_label"?: string,"eyebrow"?: string,"image_alt"?: string,"image_caption"?: string,"image_media_id"?: string | null,"key": string,"note"?: string,"title"?: string,"updated_at"?: string,"visible"?: boolean
+                    "alt"?: string,"authorized"?: boolean,"description"?: string,"id"?: string,"label"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"rating"?: number,"section_id": string,"title"?: string,"visible"?: boolean
                   }
                   Update: {
-                    "body"?: string,"cta_label"?: string,"eyebrow"?: string,"image_alt"?: string,"image_caption"?: string,"image_media_id"?: string | null,"key"?: string,"note"?: string,"title"?: string,"updated_at"?: string,"visible"?: boolean
+                    "alt"?: string,"authorized"?: boolean,"description"?: string,"id"?: string,"label"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"rating"?: number,"section_id"?: string,"title"?: string,"visible"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "section_items_media_id_fkey"
+      columns: ["media_id"]
+isOneToOne: false
+      referencedRelation: "media"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "section_items_section_id_fkey"
+      columns: ["section_id"]
+isOneToOne: false
+      referencedRelation: "sections"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sections": {
+                  Row: {
+                    "body": string,"cta_label": string,"eyebrow": string,"icon": string,"id": string,"image_alt": string,"image_caption": string,"image_media_id": string | null,"name": string,"nav_label": string,"note": string,"options": NonNullable<Json>,"position": number,"slug": string,"title": string,"type": string,"updated_at": string,"visible": boolean
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string,"cta_label"?: string,"eyebrow"?: string,"icon"?: string,"id"?: string,"image_alt"?: string,"image_caption"?: string,"image_media_id"?: string | null,"name": string,"nav_label"?: string,"note"?: string,"options"?: NonNullable<Json>,"position"?: number,"slug": string,"title"?: string,"type": string,"updated_at"?: string,"visible"?: boolean
+                  }
+                  Update: {
+                    "body"?: string,"cta_label"?: string,"eyebrow"?: string,"icon"?: string,"id"?: string,"image_alt"?: string,"image_caption"?: string,"image_media_id"?: string | null,"name"?: string,"nav_label"?: string,"note"?: string,"options"?: NonNullable<Json>,"position"?: number,"slug"?: string,"title"?: string,"type"?: string,"updated_at"?: string,"visible"?: boolean
                   }
                   Relationships: [
                     {
@@ -221,40 +165,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"steps": {
-                  Row: {
-                    "description": string,"id": string,"position": number,"title": string,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "description"?: string,"id"?: string,"position"?: number,"title": string,"visible"?: boolean
-                  }
-                  Update: {
-                    "description"?: string,"id"?: string,"position"?: number,"title"?: string,"visible"?: boolean
-                  }
-                  Relationships: [
-                    
-                  ]
-                },"testimonials": {
-                  Row: {
-                    "author": string,"authorized": boolean,"context": string,"id": string,"media_id": string | null,"photo_media_ids": (string)[],"position": number,"quote": string,"rating": number,"visible": boolean
-                  }
-                  ComputedFields: never
-                  Insert: {
-                    "author": string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"quote": string,"rating"?: number,"visible"?: boolean
-                  }
-                  Update: {
-                    "author"?: string,"authorized"?: boolean,"context"?: string,"id"?: string,"media_id"?: string | null,"photo_media_ids"?: (string)[],"position"?: number,"quote"?: string,"rating"?: number,"visible"?: boolean
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "testimonials_media_id_fkey"
-      columns: ["media_id"]
-isOneToOne: false
-      referencedRelation: "media"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"trash": {
                   Row: {
                     "deleted_at": string,"deleted_by": string | null,"id": string,"label": string,"row_data": NonNullable<Json>,"table_name": string
@@ -275,9 +185,63 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "deploy_hook_url":
+            "create_section":
+{ Args: { "p_position": number,"p_section": Json }; Returns: {
+              "body": string,
+"cta_label": string,
+"eyebrow": string,
+"icon": string,
+"id": string,
+"image_alt": string,
+"image_caption": string,
+"image_media_id": string | null,
+"name": string,
+"nav_label": string,
+"note": string,
+"options": NonNullable<Json>,
+"position": number,
+"slug": string,
+"title": string,
+"type": string,
+"updated_at": string,
+"visible": boolean
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "sections"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"deploy_hook_url":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"duplicate_section":
+{ Args: { "p_id": string,"p_name": string,"p_slug": string }; Returns: {
+              "body": string,
+"cta_label": string,
+"eyebrow": string,
+"icon": string,
+"id": string,
+"image_alt": string,
+"image_caption": string,
+"image_media_id": string | null,
+"name": string,
+"nav_label": string,
+"note": string,
+"options": NonNullable<Json>,
+"position": number,
+"slug": string,
+"title": string,
+"type": string,
+"updated_at": string,
+"visible": boolean
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "sections"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "events_summary":
 { Args: { "p_days"?: number }; Returns: {
               "day": string,"kind": string,"source": string,"total": number
@@ -291,6 +255,12 @@ isOneToOne: false
                            },
 "publish_site_if_needed":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"reorder_section_items":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
+                           },
+"reorder_sections":
+{ Args: { "p_ids": (string)[] }; Returns: undefined
                            },
 "restore_backup":
 { Args: { "p_backup": Json }; Returns: Json
