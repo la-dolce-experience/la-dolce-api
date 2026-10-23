@@ -145,7 +145,9 @@ O seed de produção e as configurações do painel do Supabase estão no guia `
 | **Migrations, seed, RLS e tipos** | Formatação, tipos e testes das funções; sobe o Supabase com o seed do `la-dolce-data`; confere se `types/database.ts` bate com as migrations; roda os testes de segurança |
 | **Segredos e dependências** | Gitleaks em todo o histórico, arquivos `.env` e chaves versionados, `npm audit` |
 
-O primeiro job baixa o `la-dolce-data` e precisa do secret **`LA_DOLCE_REPOS_TOKEN`** (veja abaixo). Nenhuma chave do Supabase de produção vai para o GitHub.
+O primeiro job baixa o `la-dolce-data` e precisa do secret **`LA_DOLCE_REPOS_TOKEN`** (veja abaixo).
+
+Mudança que atravessa repositórios (ex.: migration aqui + seed novo no `la-dolce-data` + app): use **o mesmo nome de branch** nos repositórios envolvidos. A CI de cada um baixa o branch de mesmo nome dos outros quando ele existe, e o `main` quando não existe. Assim os PRs passam juntos, antes de qualquer um entrar no `main`. Nenhuma chave do Supabase de produção vai para o GitHub.
 
 ### Secret `LA_DOLCE_REPOS_TOKEN`
 
