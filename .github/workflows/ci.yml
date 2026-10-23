@@ -49,11 +49,11 @@ jobs:
             echo "${repo//-/_}=${ref}" >> "$GITHUB_OUTPUT"
             echo "$repo: ${ref:-branch padrão}"
           done
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           path: la-dolce-api
       - name: Seed (la-dolce-data)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ github.repository_owner }}/la-dolce-data
           ref: ${{ steps.refs.outputs.la_dolce_data }}
@@ -93,7 +93,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0 # histórico completo: um segredo apagado depois continua exposto nos commits antigos
       - uses: actions/setup-node@v5
