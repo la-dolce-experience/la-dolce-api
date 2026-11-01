@@ -558,3 +558,55 @@ describe('fotos extras dos itens (depoimentos)', () => {
     expect(data!.photo_media_ids).toEqual([b.id]);
   });
 });
+
+describe('recorte de imagens (media.source_media_id e crop)', () => {
+  const cropped = (source: string) => ({
+    src_lg: 'teste/recorte.webp',
+    src_sm: 'teste/recorte.webp',
+    width_lg: 1,
+    height_lg: 1,
+    width_sm: 1,
+    height_sm: 1,
+    source_media_id: source,
+    crop: { x: 10, y: 0, width: 80, height: 100, aspect: 1.25 },
+  });
+
+  it('admin grava o recorte com a original; usuário sem permissão e visitante não', async () => {
+    const original = await tempMedia();
+    const { data, error } = await admin.from('media').insert(cropped(original.id)).select().single();
+    expect(error).toBeNull();
+    createdMedia.push(data!.id);
+    expect(data!.source_media_id).toBe(original.id);
+
+    for (const client of [anon, editor]) {
+      expect((await client.from('media').insert(cropped(original.id))).error).not.toBeNull();
+      await client.from('media').update({ source_media_id: null }).eq('id', data!.id);
+    }
+    const { data: after } = await service.from('media').select('source_media_id').eq('id', data!.id).single();
+    expect(after!.source_media_id).toBe(original.id);
+  });
+
+  it('recusa original inexistente, a própria imagem como original e crop que não é objeto', async () => {
+    const missing = await admin.from('media').insert(cropped(crypto.randomUUID()));
+    expect(missing.error?.code).toBe('23503');
+
+    const media = await tempMedia();
+    const self = await service.from('media').update({ source_media_id: media.id }).eq('id', media.id);
+    expect(self.error?.code).toBe('23514');
+
+    const badCrop = await service
+      .from('media')
+      .update({ crop: [1, 2] })
+      .eq('id', media.id);
+    expect(badCrop.error?.code).toBe('23514');
+  });
+
+  it('excluir a original mantém o recorte, sem a referência', async () => {
+    const original = await tempMedia();
+    const { data } = await service.from('media').insert(cropped(original.id)).select().single();
+    createdMedia.push(data!.id);
+    await service.from('media').delete().eq('id', original.id);
+    const { data: after } = await service.from('media').select('source_media_id').eq('id', data!.id).single();
+    expect(after!.source_media_id).toBeNull();
+  });
+});

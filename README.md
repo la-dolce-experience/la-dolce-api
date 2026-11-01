@@ -39,6 +39,7 @@ types/database.ts       Tipos TypeScript gerados a partir do schema (copiados pa
 scripts/
   create-admin.mjs      Cria ou promove um administrador do painel
   restore-backup.mjs    Volta o conteúdo para uma cópia baixada no painel
+  aplicar-conteudo-feedback.mjs  Carrossel de Sabores e seção de açaí (feedback de 31/10/2026)
   check-secrets.mjs     Procura chaves e arquivos .env versionados por engano
 tests/integration/      Testes de RLS, permissões e Storage
 bruno/                  Coleção do Bruno: endpoints do site e do painel, segurança e gestão de usuários
@@ -71,6 +72,7 @@ Serviços locais:
 | `npm run db:types` | Regera `types/database.ts` a partir do banco local |
 | `npm run admin:create -- --email x@y.com` | Cria ou promove um administrador (mostra uma senha temporária) |
 | `npm run backup:restore -- --file x.json` | Confere uma cópia baixada no painel e mostra o que muda; com `--confirm`, restaura |
+| `npm run conteudo:feedback` | Confere o conteúdo do feedback de 31/10/2026 (carrossel em "Sabores e apresentação" e seção de açaí); com `--confirm`, aplica. Idempotente |
 | `npm test` | Testes da lógica das Edge Functions (sem banco) |
 | `npm run test:integration` | Testes de segurança contra o banco local |
 | `npm run functions:deploy` | Publica a Edge Function `republicar-site` no projeto vinculado |

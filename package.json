@@ -15,6 +15,7 @@
     "admin:create": "node --env-file-if-exists=.env.local scripts/create-admin.mjs",
     "deploy-hook:set": "node --env-file-if-exists=.env.local scripts/set-deploy-hook.mjs",
     "backup:restore": "node --env-file-if-exists=.env.local scripts/restore-backup.mjs",
+    "conteudo:feedback": "node --env-file-if-exists=.env.local scripts/aplicar-conteudo-feedback.mjs",
     "test:integration": "vitest run tests/integration",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
