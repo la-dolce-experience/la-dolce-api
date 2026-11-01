@@ -53,17 +53,23 @@ export type Database = {
                   ]
                 },"media": {
                   Row: {
-                    "alt": string,"created_at": string,"height_lg": number,"height_sm": number,"id": string,"mime_type": string,"original_name": string,"size_bytes": number,"src_lg": string,"src_sm": string,"width_lg": number,"width_sm": number
+                    "alt": string,"created_at": string,"crop": Json | null,"height_lg": number,"height_sm": number,"id": string,"mime_type": string,"original_name": string,"size_bytes": number,"source_media_id": string | null,"src_lg": string,"src_sm": string,"width_lg": number,"width_sm": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "alt"?: string,"created_at"?: string,"height_lg": number,"height_sm": number,"id"?: string,"mime_type"?: string,"original_name"?: string,"size_bytes"?: number,"src_lg": string,"src_sm": string,"width_lg": number,"width_sm": number
+                    "alt"?: string,"created_at"?: string,"crop"?: Json | null,"height_lg": number,"height_sm": number,"id"?: string,"mime_type"?: string,"original_name"?: string,"size_bytes"?: number,"source_media_id"?: string | null,"src_lg": string,"src_sm": string,"width_lg": number,"width_sm": number
                   }
                   Update: {
-                    "alt"?: string,"created_at"?: string,"height_lg"?: number,"height_sm"?: number,"id"?: string,"mime_type"?: string,"original_name"?: string,"size_bytes"?: number,"src_lg"?: string,"src_sm"?: string,"width_lg"?: number,"width_sm"?: number
+                    "alt"?: string,"created_at"?: string,"crop"?: Json | null,"height_lg"?: number,"height_sm"?: number,"id"?: string,"mime_type"?: string,"original_name"?: string,"size_bytes"?: number,"source_media_id"?: string | null,"src_lg"?: string,"src_sm"?: string,"width_lg"?: number,"width_sm"?: number
                   }
                   Relationships: [
-                    
+                    {
+      foreignKeyName: "media_source_media_id_fkey"
+      columns: ["source_media_id"]
+isOneToOne: false
+      referencedRelation: "media"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"section_items": {
                   Row: {
