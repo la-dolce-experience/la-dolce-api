@@ -29,11 +29,11 @@
     "@supabase/supabase-js": "^2.118.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "prettier": "^3.9.10",
-    "supabase": "^2.121.0",
+    "supabase": "^2.122.0",
     "typescript": "^6.0.3",
-    "vite": "^8.3.4",
+    "vite": "^8.3.5",
     "vitest": "^5.0.5"
   }
 }
