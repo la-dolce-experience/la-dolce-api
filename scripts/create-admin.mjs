@@ -1,7 +1,12 @@
-// Cria (ou promove) um administrador do painel.
+// Cria (ou promove) um administrador do painel, ou redefine a senha de um que já existe.
 //
 // Uso:
 //   npm run admin:create -- --email cliente@exemplo.com
+//   npm run admin:reset-password -- --email cliente@exemplo.com
+//
+// Redefinir senha (--reset-password) serve para quando o "Esqueci minha senha" não chega: sem SMTP
+// próprio, o Supabase só envia e-mail para membros da equipe do projeto. Só vale para quem já existe;
+// um e-mail digitado errado não vira administrador novo.
 //
 // Requer em .env.local (NUNCA versionar):
 //   SUPABASE_URL=...                 URL do projeto
@@ -25,6 +30,7 @@ function generatePassword() {
 }
 
 const email = arg('email')?.trim().toLowerCase();
+const resetPassword = process.argv.includes('--reset-password');
 const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -52,7 +58,19 @@ for (let page = 1; !userId; page++) {
 }
 
 let created = false;
-if (!userId) {
+if (resetPassword) {
+  if (!userId) {
+    console.error(
+      `Não existe usuário com o e-mail ${email}. Para criar, use: npm run admin:create -- --email ${email}`,
+    );
+    process.exit(1);
+  }
+  const { error } = await admin.auth.admin.updateUserById(userId, { password });
+  if (error) {
+    console.error('Não foi possível redefinir a senha:', error.message);
+    process.exit(1);
+  }
+} else if (!userId) {
   const { data, error } = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (error) {
     console.error('Não foi possível criar o usuário:', error.message);
@@ -64,14 +82,23 @@ if (!userId) {
 
 const { error: grantError } = await admin.from('admin_users').upsert({ user_id: userId });
 if (grantError) {
-  console.error('Usuário criado, mas falhou ao conceder acesso de administrador:', grantError.message);
+  const done = resetPassword ? 'Senha redefinida' : 'Usuário criado';
+  console.error(`${done}, mas falhou ao conceder acesso de administrador:`, grantError.message);
   process.exit(1);
 }
 
-console.log(`\nAdministrador pronto: ${email}`);
-if (created && !providedPassword) {
-  console.log(`Senha temporária (exibida só agora): ${password}`);
-  console.log('Oriente o cliente a trocar a senha em Painel > Minha conta.\n');
-} else if (!created) {
-  console.log('O usuário já existia; a senha não foi alterada.\n');
+if (resetPassword) {
+  console.log(`\nSenha redefinida: ${email}`);
+  if (!providedPassword) console.log(`Senha temporária (exibida só agora): ${password}`);
+  console.log(
+    'A senha anterior deixou de valer. Envie a nova por um canal seguro e oriente a troca em Painel > Minha conta.\n',
+  );
+} else {
+  console.log(`\nAdministrador pronto: ${email}`);
+  if (created && !providedPassword) {
+    console.log(`Senha temporária (exibida só agora): ${password}`);
+    console.log('Oriente o cliente a trocar a senha em Painel > Minha conta.\n');
+  } else if (!created) {
+    console.log('O usuário já existia; a senha não foi alterada (para trocar, use npm run admin:reset-password).\n');
+  }
 }
