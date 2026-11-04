@@ -71,6 +71,7 @@ Serviços locais:
 | `npm run db:status` | Mostra URLs e chaves do ambiente local |
 | `npm run db:types` | Regera `types/database.ts` a partir do banco local |
 | `npm run admin:create -- --email x@y.com` | Cria ou promove um administrador (mostra uma senha temporária) |
+| `npm run admin:reset-password -- --email x@y.com` | Redefine a senha de um administrador que já existe e mostra a nova, temporária. Use quando o "Esqueci minha senha" não chega (sem SMTP próprio, o Supabase só envia para a equipe do projeto) |
 | `npm run backup:restore -- --file x.json` | Confere uma cópia baixada no painel e mostra o que muda; com `--confirm`, restaura |
 | `npm run conteudo:feedback` | Confere o conteúdo do feedback de 31/10/2026 (carrossel em "Sabores e apresentação" e seção de açaí); com `--confirm`, aplica. Idempotente |
 | `npm test` | Testes da lógica das Edge Functions (sem banco) |
